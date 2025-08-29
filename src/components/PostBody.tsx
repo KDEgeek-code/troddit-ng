@@ -34,14 +34,12 @@ const PostBody = ({
   const component = useParseBodyHTML({ rawHTML, newTabLinks });
   const { theme, resolvedTheme } = useTheme();
   const ref = useRef<HTMLDivElement>(null);
-  const [heightLimited, setHeightLimited] = useState(
-    () => !!limitHeight ?? false
-  );
+  const [heightLimited, setHeightLimited] = useState(() => Boolean(limitHeight));
   useEffect(() => {
     setHeightLimited(!!limitHeight);
   }, [limitHeight]);
   const [hiddenText, setHiddenText] = useState(false);
-  const [hideText, setHideText] = useState(() => !!limitHeight ?? false);
+  const [hideText, setHideText] = useState(() => Boolean(limitHeight));
   useEffect(() => {
     let cRef = ref.current;
     const checkIsTextHidden = () => {

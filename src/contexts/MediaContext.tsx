@@ -68,33 +68,41 @@ export const MediaProvider = ({ children }: { children: React.ReactNode }) => {
   // Initialization useEffect - load from storage
   useEffect(() => {
     const initSettings = async () => {
-
-
-      // Load media settings with localforage fallback to localStorage pattern
-      const loadVolume = async () => {
-        let saved_volume = await localForage.getItem("volume");
-        if (saved_volume !== null) {
-          setVolume(saved_volume as number);
-          localStorage.removeItem("volume");
-        } else {
-
-          let local_volume = localStorage.getItem("volume");
-          local_volume && setVolume(parseFloat(local_volume));
-        }
-      };
+      try {
+        // Load media settings with localforage fallback to localStorage pattern
+        const loadVolume = async () => {
+          try {
+            let saved_volume = await localForage.getItem("volume");
+            if (saved_volume !== null) {
+              setVolume(saved_volume as number);
+              localStorage.removeItem("volume");
+            } else {
+              let local_volume = localStorage.getItem("volume");
+              if (local_volume) {
+                setVolume(parseFloat(local_volume));
+              }
+            }
+          } catch (error) {
+            console.error("Error loading volume:", error);
+          }
+        };
 
       const loadNSFW = async () => {
-        let saved_nsfw = await localForage.getItem("nsfw");
-        if (saved_nsfw !== null) {
-          setNSFW(saved_nsfw as boolean);
-          localStorage.removeItem("nsfw");
-        } else {
-          let local_nsfw = localStorage.getItem("nsfw");
-          if (local_nsfw?.includes("false")) {
-            setNSFW(false);
+        try {
+          let saved_nsfw = await localForage.getItem("nsfw");
+          if (saved_nsfw !== null) {
+            setNSFW(saved_nsfw as boolean);
+            localStorage.removeItem("nsfw");
           } else {
-            setNSFW(true);
+            let local_nsfw = localStorage.getItem("nsfw");
+            if (local_nsfw?.includes("false")) {
+              setNSFW(false);
+            } else {
+              setNSFW(true);
+            }
           }
+        } catch (error) {
+          console.error("Error loading NSFW setting:", error);
         }
       };
 
@@ -207,6 +215,10 @@ export const MediaProvider = ({ children }: { children: React.ReactNode }) => {
         loadWaitForVidInterval(),
         loadAutoPlayMode(),
       ]);
+    } catch (error) {
+      console.error("Error initializing media settings:", error);
+    }
+    // Close initSettings function before invoking it
     };
 
     initSettings();

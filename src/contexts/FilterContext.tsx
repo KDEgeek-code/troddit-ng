@@ -185,26 +185,36 @@ export const FilterProvider = ({ children }: { children: React.ReactNode }) => {
   // Initialization useEffect - load from storage
   useEffect(() => {
     const initSettings = async () => {
-
-
-      // Load filter settings with localforage fallback to localStorage pattern
-      const loadSeenFilter = async () => {
-        let saved_seenFilter = await localForage.getItem("seenFilter");
-        if (saved_seenFilter !== null) {
-          if (saved_seenFilter === false) {
-            setSeenFilter(false);
+      // Generic helper for loading boolean filters
+      const loadBooleanFilter = async (key: string, setter: (value: boolean) => void, defaultValue = true) => {
+        try {
+          const savedValue = await localForage.getItem(key);
+          if (savedValue !== null) {
+            setter(savedValue as boolean);
+            localStorage.removeItem(key);
           } else {
-            setSeenFilter(true);
+            const localValue = localStorage.getItem(key);
+            if (localValue?.includes("false")) {
+              setter(false);
+            } else {
+              setter(defaultValue);
+            }
           }
-          localStorage.removeItem("seenFilter");
-        } else {
+        } catch (error) {
+          console.error(`Error loading ${key}:`, error);
+          setter(defaultValue);
+        }
+      };
 
-          let local_seenFilter = localStorage.getItem("seenFilter");
-          if (local_seenFilter?.includes("false")) {
-            setSeenFilter(false);
-          } else {
-            setSeenFilter(true);
+      // Generic helper for loading numeric filters
+      const loadNumericFilter = async (key: string, setter: (value: number) => void) => {
+        try {
+          const savedValue = await localForage.getItem(key);
+          if (savedValue !== null && typeof savedValue === 'number') {
+            setter(savedValue);
           }
+        } catch (error) {
+          console.error(`Error loading ${key}:`, error);
         }
       };
 
@@ -409,126 +419,78 @@ export const FilterProvider = ({ children }: { children: React.ReactNode }) => {
         }
       };
 
-      // Load all settings
+      // Load all settings using generic helpers
       await Promise.all([
-        loadSeenFilter(),
-        loadReadFilter(),
-        loadImgFilter(),
-        loadVidFilter(),
-        loadGalFilter(),
-        loadSelfFilter(),
-        loadLinkFilter(),
-        loadImgPortraitFilter(),
-        loadImgLandscapeFilter(),
-        loadImgResFilter(),
-        loadImgResXFilter(),
-        loadImgResYFilter(),
-        loadImgResExactFilter(),
-        loadScoreFilter(),
-        loadScoreFilterNum(),
-        loadScoreGreater(),
+        loadBooleanFilter("seenFilter", setSeenFilter),
+        loadBooleanFilter("readFilter", setReadFilter),
+        loadBooleanFilter("imgFilter", setImgFilter),
+        loadBooleanFilter("vidFilter", setVidFilter),
+        loadBooleanFilter("galFilter", setGalFilter),
+        loadBooleanFilter("selfFilter", setSelfFilter),
+        loadBooleanFilter("linkFilter", setLinkFilter),
+        loadBooleanFilter("imgPortraitFilter", setImgPortraitFilter),
+        loadBooleanFilter("imgLandscapeFilter", setImgLandScapeFilter),
+        loadBooleanFilter("imgResFilter", setImgResFilter),
+        loadNumericFilter("imgResXFilter", setImgResXFilter),
+        loadNumericFilter("imgResYFilter", setImgResYFilter),
+        loadBooleanFilter("imgResExactFilter", setImgResExactFilter),
+        loadBooleanFilter("scoreFilter", setScoreFilter),
+        loadNumericFilter("scoreFilterNum", setScoreFilterNum),
+        loadBooleanFilter("scoreGreater", setScoreGreater),
       ]);
     };
 
     initSettings();
   }, []);
 
-  // Persistence useEffects - save to storage when values change
+  // Single useEffect for persisting all filter settings
   useEffect(() => {
-    if (seenFilter !== undefined) {
-      localForage.setItem("seenFilter", seenFilter);
-    }
-  }, [seenFilter]);
+    const persistFilters = async () => {
+      const filtersToPersist = [
+        { key: "seenFilter", value: seenFilter },
+        { key: "readFilter", value: readFilter },
+        { key: "imgFilter", value: imgFilter },
+        { key: "vidFilter", value: vidFilter },
+        { key: "galFilter", value: galFilter },
+        { key: "selfFilter", value: selfFilter },
+        { key: "linkFilter", value: linkFilter },
+        { key: "imgPortraitFilter", value: imgPortraitFilter },
+        { key: "imgLandscapeFilter", value: imgLandscapeFilter },
+        { key: "imgResFilter", value: imgResFilter },
+        { key: "imgResXFilter", value: imgResXFilter },
+        { key: "imgResYFilter", value: imgResYFilter },
+        { key: "imgResExactFilter", value: imgResExactFilter },
+        { key: "scoreFilter", value: scoreFilter },
+        { key: "scoreFilterNum", value: scoreFilterNum },
+        { key: "scoreGreater", value: scoreGreater },
+      ];
 
-  useEffect(() => {
-    if (readFilter !== undefined) {
-      localForage.setItem("readFilter", readFilter);
-    }
-  }, [readFilter]);
+      await Promise.all(
+        filtersToPersist
+          .filter(filter => filter.value !== undefined)
+          .map(filter => localForage.setItem(filter.key, filter.value))
+      );
+    };
 
-  useEffect(() => {
-    if (imgFilter !== undefined) {
-      localForage.setItem("imgFilter", imgFilter);
-    }
-  }, [imgFilter]);
-
-  useEffect(() => {
-    if (vidFilter !== undefined) {
-      localForage.setItem("vidFilter", vidFilter);
-    }
-  }, [vidFilter]);
-
-  useEffect(() => {
-    if (galFilter !== undefined) {
-      localForage.setItem("galFilter", galFilter);
-    }
-  }, [galFilter]);
-
-  useEffect(() => {
-    if (selfFilter !== undefined) {
-      localForage.setItem("selfFilter", selfFilter);
-    }
-  }, [selfFilter]);
-
-  useEffect(() => {
-    if (linkFilter !== undefined) {
-      localForage.setItem("linkFilter", linkFilter);
-    }
-  }, [linkFilter]);
-
-  useEffect(() => {
-    if (imgPortraitFilter !== undefined) {
-      localForage.setItem("imgPortraitFilter", imgPortraitFilter);
-    }
-  }, [imgPortraitFilter]);
-
-  useEffect(() => {
-    if (imgLandscapeFilter !== undefined) {
-      localForage.setItem("imgLandscapeFilter", imgLandscapeFilter);
-    }
-  }, [imgLandscapeFilter]);
-
-  useEffect(() => {
-    if (imgResFilter !== undefined) {
-      localForage.setItem("imgResFilter", imgResFilter);
-    }
-  }, [imgResFilter]);
-
-  useEffect(() => {
-    if (imgResXFilter !== undefined) {
-      localForage.setItem("imgResXFilter", imgResXFilter);
-    }
-  }, [imgResXFilter]);
-
-  useEffect(() => {
-    if (imgResYFilter !== undefined) {
-      localForage.setItem("imgResYFilter", imgResYFilter);
-    }
-  }, [imgResYFilter]);
-
-  useEffect(() => {
-    if (imgResExactFilter !== undefined) {
-      localForage.setItem("imgResExactFilter", imgResExactFilter);
-    }
-  }, [imgResExactFilter]);
-
-  useEffect(() => {
-    if (scoreFilter !== undefined) {
-      localForage.setItem("scoreFilter", scoreFilter);
-    }
-  }, [scoreFilter]);
-
-  useEffect(() => {
-    if (scoreFilterNum !== undefined) {
-      localForage.setItem("scoreFilterNum", scoreFilterNum);
-    }
-  }, [scoreFilterNum]);
-
-  useEffect(() => {
-    if (scoreGreater !== undefined) {
-      localForage.setItem("scoreGreater", scoreGreater);
-    }
-  }, [scoreGreater]);
+    persistFilters();
+  }, [
+    seenFilter,
+    readFilter,
+    imgFilter,
+    vidFilter,
+    galFilter,
+    selfFilter,
+    linkFilter,
+    imgPortraitFilter,
+    imgLandscapeFilter,
+    imgResFilter,
+    imgResXFilter,
+    imgResYFilter,
+    imgResExactFilter,
+    scoreFilter,
+    scoreFilterNum,
+    scoreGreater,
+  ]);
 
   const contextValue: FilterContextValue = {
     // Content Type Filters

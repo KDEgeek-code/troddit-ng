@@ -103,7 +103,36 @@ export const UIProvider = ({ children }: { children: React.ReactNode }) => {
   // Initialization useEffect - load from storage
   useEffect(() => {
     const initSettings = async () => {
-
+      // Generic helper for loading settings
+      // Note: add trailing comma in `<T,>` to avoid TSX parsing this as JSX
+      const loadSetting = async <T,>(
+        key: string,
+        setter: (value: T) => void,
+        defaultValue?: T,
+        migrateFn?: (
+          key: string,
+          defaultValue: T,
+          setter: (value: T) => void,
+        ) => Promise<void>,
+      ) => {
+        if (migrateFn) {
+          await migrateFn(key, defaultValue!, setter);
+        } else {
+          try {
+            const savedValue = await localForage.getItem(key);
+            if (savedValue !== null) {
+              setter(savedValue as T);
+            } else if (defaultValue !== undefined) {
+              setter(defaultValue);
+            }
+          } catch (error) {
+            console.error(`Error loading ${key}:`, error);
+            if (defaultValue !== undefined) {
+              setter(defaultValue);
+            }
+          }
+        }
+      };
 
       // Load UI settings with localforage fallback to localStorage pattern
       const loadWideUI = async () => {
@@ -131,13 +160,15 @@ export const UIProvider = ({ children }: { children: React.ReactNode }) => {
       const loadCardStyle = async () => {
         let saved_cardStyle: string | null = await localForage.getItem("cardStyle");
         if (saved_cardStyle !== null) {
-          saved_cardStyle && setCardStyle(saved_cardStyle as CardStyle);
+          setCardStyle(saved_cardStyle as CardStyle);
           localStorage.removeItem("cardStyle");
         } else {
           let local_cardStyle = localStorage.getItem("cardStyle");
-          local_cardStyle?.length > 0
-            ? setCardStyle(local_cardStyle as CardStyle)
-            : setCardStyle("default");
+          if (local_cardStyle?.length > 0) {
+            setCardStyle(local_cardStyle as CardStyle);
+          } else {
+            setCardStyle("default");
+          }
         }
       };
 
@@ -225,109 +256,77 @@ export const UIProvider = ({ children }: { children: React.ReactNode }) => {
         }
       };
 
-      // Load all settings
+      // Load all settings using generic helper
       await Promise.all([
-        loadWideUI(),
-        loadSaveWideUI(),
-        loadPostWideUI(),
-        loadSyncWideUI(),
-        loadCardStyle(),
-        loadColumnOverride(),
-        loadUniformHeights(),
-        loadAutoHideNav(),
-        loadExpandedSubPane(),
-        loadCompactLinkPics(),
-        loadPreferSideBySide(),
-        loadDisableSideBySide(),
-        loadDimRead(),
-        loadShowAwardings(),
-        loadShowFlairs(),
-        loadShowUserIcons(),
-        loadShowUserFlairs(),
+        loadSetting("wideUI", setWideUI, true, migrateStorageValue),
+        loadSetting("saveWideUI", setSaveWideUI, true, migrateStorageValue),
+        loadSetting("postWideUI", setPostWideUI),
+        loadSetting("syncWideUI", setSyncWideUI),
+        loadSetting("cardStyle", setCardStyle, "default"),
+        loadSetting("columnOverride", setColumnOverride),
+        loadSetting("uniformHeights", setUniformHeights),
+        loadSetting("autoHideNav", setAutoHideNav),
+        loadSetting("expandedSubPane", setExpandedSubPane),
+        loadSetting("compactLinkPics", setCompactLinkPics),
+        loadSetting("preferSideBySide", setPreferSideBySide),
+        loadSetting("disableSideBySide", setDisableSideBySide),
+        loadSetting("dimRead", setDimRead),
+        loadSetting("showAwardings", setShowAwardings),
+        loadSetting("showFlairs", setShowFlairs),
+        loadSetting("showUserIcons", setShowUserIcons),
+        loadSetting("showUserFlairs", setShowUserFlairs),
       ]);
     };
 
     initSettings();
   }, []);
 
-  // Persistence useEffects - save to storage when values change
+  // Single useEffect for persisting all UI settings
   useEffect(() => {
-    if (wideUI !== undefined) {
-      persistToStorage("wideUI", wideUI);
-    }
-  }, [wideUI]);
+    const persistSettings = async () => {
+      const settingsToPersist = [
+        { key: "wideUI", value: wideUI, usePersistToStorage: true },
+        { key: "saveWideUI", value: saveWideUI, usePersistToStorage: true },
+        { key: "postWideUI", value: postWideUI },
+        { key: "syncWideUI", value: syncWideUI },
+        { key: "cardStyle", value: cardStyle, condition: cardStyle?.length > 0 },
+        { key: "columnOverride", value: columnOverride },
+        { key: "uniformHeights", value: uniformHeights },
+        { key: "autoHideNav", value: autoHideNav },
+        { key: "expandedSubPane", value: expandedSubPane },
+        { key: "compactLinkPics", value: compactLinkPics },
+        { key: "preferSideBySide", value: preferSideBySide },
+        { key: "disableSideBySide", value: disableSideBySide },
+        { key: "dimRead", value: dimRead },
+      ];
 
-  useEffect(() => {
-    if (saveWideUI !== undefined) {
-      persistToStorage("saveWideUI", saveWideUI);
-    }
-  }, [saveWideUI]);
+      await Promise.all(
+        settingsToPersist
+          .filter(setting => setting.value !== undefined && (setting.condition === undefined || setting.condition))
+          .map(setting => 
+            setting.usePersistToStorage 
+              ? persistToStorage(setting.key, setting.value)
+              : localForage.setItem(setting.key, setting.value)
+          )
+      );
+    };
 
-  useEffect(() => {
-    if (postWideUI !== undefined) {
-      localForage.setItem("postWideUI", postWideUI);
-    }
-  }, [postWideUI]);
-
-  useEffect(() => {
-    if (syncWideUI !== undefined) {
-      localForage.setItem("syncWideUI", syncWideUI);
-    }
-  }, [syncWideUI]);
-
-  useEffect(() => {
-    if (cardStyle?.length > 0) {
-      localForage.setItem("cardStyle", cardStyle);
-    }
-  }, [cardStyle]);
-
-  useEffect(() => {
-    if (columnOverride !== undefined) {
-      localForage.setItem("columnOverride", columnOverride);
-    }
-  }, [columnOverride]);
-
-  useEffect(() => {
-    if (uniformHeights !== undefined) {
-      localForage.setItem("uniformHeights", uniformHeights);
-    }
-  }, [uniformHeights]);
-
-  useEffect(() => {
-    if (autoHideNav !== undefined) {
-      localForage.setItem("autoHideNav", autoHideNav);
-    }
-  }, [autoHideNav]);
-
-  useEffect(() => {
-    if (expandedSubPane !== undefined) {
-      localForage.setItem("expandedSubPane", expandedSubPane);
-    }
-  }, [expandedSubPane]);
-
-  useEffect(() => {
-    if (compactLinkPics !== undefined) {
-      localForage.setItem("compactLinkPics", compactLinkPics);
-    }
-  }, [compactLinkPics]);
-
-  useEffect(() => {
-    if (preferSideBySide !== undefined) {
-      localForage.setItem("preferSideBySide", preferSideBySide);
-    }
-  }, [preferSideBySide]);
-
-  useEffect(() => {
-    if (disableSideBySide !== undefined) {
-      localForage.setItem("disableSideBySide", disableSideBySide);
-    }
-  }, [disableSideBySide]);
-
-  useEffect(() => {
-    if (dimRead !== undefined) {
-      localForage.setItem("dimRead", dimRead);
-    }
-  }, [dimRead]);
+    persistSettings();
+  }, [
+    wideUI,
+    saveWideUI,
+    postWideUI,
+    syncWideUI,
+    cardStyle,
+    columnOverride,
+    uniformHeights,
+    autoHideNav,
+    expandedSubPane,
+    compactLinkPics,
+    preferSideBySide,
+    disableSideBySide,
+    dimRead,
+  ]);
 
   useEffect(() => {
     if (showAwardings !== undefined) {

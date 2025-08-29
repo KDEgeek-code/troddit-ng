@@ -62,8 +62,11 @@ const generateMediaCacheEntry = (
   withRangeRequests = false,
 ) => ({
   urlPattern: ({ request, url }) => {
+    // First escape the literal domain string, then replace wildcards with pattern for multiple domain labels
+    const escapedDomain = domain.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+    const wildcardPattern = escapedDomain.replace(/\\\*/g, '(?:[^.]+\\.)*[^.]+');
     const domainRegex = new RegExp(
-      `^https://${domain.replace(/\*/g, "[^.]+")}/.*`,
+      `^https://${wildcardPattern}/.*`,
       "i",
     );
     return (

@@ -8,7 +8,7 @@ export interface RedditListing<T> {
     dist?: number;
     modhash?: string;
   };
-  token?: string | undefined;
+  token?: { expires?: number; accessToken?: string } | undefined;
 }
 
 // Flattened listing for API loaders that return flattened structures
@@ -19,7 +19,7 @@ export interface FlattenedListing<T> {
   before: string | null;
   dist?: number;
   modhash?: string;
-  token?: string | undefined;
+  token?: { expires?: number; accessToken?: string } | undefined;
 }
 
 export interface RedditPost {
@@ -469,8 +469,10 @@ export interface MainContextValue {
   setPosts: React.Dispatch<React.SetStateAction<RedditPost[]>>;
   postNum: number;
   setPostNum: React.Dispatch<React.SetStateAction<number>>;
-  token: string | null;
-  setToken: React.Dispatch<React.SetStateAction<string | null>>;
+  token: { expires?: number; accessToken?: string } | null;
+  setToken: React.Dispatch<
+    React.SetStateAction<{ expires?: number; accessToken?: string } | null>
+  >;
   gAfter: string;
   setGAfter: React.Dispatch<React.SetStateAction<string>>;
   safeSearch: boolean;
@@ -913,8 +915,10 @@ export interface AppContextValue {
   setPosts: React.Dispatch<React.SetStateAction<RedditPost[]>>;
   postNum: number;
   setPostNum: React.Dispatch<React.SetStateAction<number>>;
-  token: string | null;
-  setToken: React.Dispatch<React.SetStateAction<string | null>>;
+  token: { expires?: number; accessToken?: string } | null;
+  setToken: React.Dispatch<
+    React.SetStateAction<{ expires?: number; accessToken?: string } | null>
+  >;
   gAfter: string;
   setGAfter: React.Dispatch<React.SetStateAction<string>>;
   safeSearch: boolean;
@@ -938,7 +942,7 @@ export interface AppContextValue {
     >
   >;
   readPostsChange: number;
-  setReadPostsChange: (value: number) => void;
+  setReadPostsChange: React.Dispatch<React.SetStateAction<number>>;
   clearReadPosts: () => Promise<boolean>;
   bulkAddReadPosts: (posts: { postId: string; numComments: number }[]) => void;
   addReadPost: (params: { postId: string; numComments: number }) => void;
@@ -960,43 +964,43 @@ export interface AppContextValue {
 
   // App-Level Settings (not moved to other contexts)
   mediaOnly: boolean | undefined;
-  setMediaOnly: (value: boolean) => void;
+  setMediaOnly: React.Dispatch<React.SetStateAction<boolean | undefined>>;
   toggleMediaOnly: () => void;
   autoCollapseComments: boolean | undefined;
-  setAutoCollapseComments: (value: boolean) => void;
+  setAutoCollapseComments: React.Dispatch<React.SetStateAction<boolean | undefined>>;
   toggleAutoCollapseComments: () => void;
   collapseChildrenOnly: boolean | undefined;
-  setCollapseChildrenOnly: (value: boolean) => void;
+  setCollapseChildrenOnly: React.Dispatch<React.SetStateAction<boolean | undefined>>;
   toggleCollapseChildrenOnly: () => void;
   defaultCollapseChildren: boolean | undefined;
-  setDefaultCollapseChildren: (value: boolean) => void;
+  setDefaultCollapseChildren: React.Dispatch<React.SetStateAction<boolean | undefined>>;
   toggleDefaultCollapseChildren: () => void;
   ribbonCollapseOnly: boolean | undefined;
-  setRibbonCollapseOnly: (value: boolean) => void;
+  setRibbonCollapseOnly: React.Dispatch<React.SetStateAction<boolean | undefined>>;
   toggleRibbonCollapseOnly: () => void;
   infiniteLoading: boolean | undefined;
-  setInfiniteLoading: (value: boolean) => void;
+  setInfiniteLoading: React.Dispatch<React.SetStateAction<boolean | undefined>>;
   toggleInfiniteLoading: () => void;
   autoRead: boolean | undefined;
-  setAutoRead: (value: boolean) => void;
+  setAutoRead: React.Dispatch<React.SetStateAction<boolean | undefined>>;
   toggleAutoRead: () => void;
   autoSeen: boolean | undefined;
-  setAutoSeen: (value: boolean) => void;
+  setAutoSeen: React.Dispatch<React.SetStateAction<boolean | undefined>>;
   toggleAutoSeen: () => void;
   autoRefreshFeed: boolean | undefined;
-  setAutoRefreshFeed: (value: boolean) => void;
+  setAutoRefreshFeed: React.Dispatch<React.SetStateAction<boolean | undefined>>;
   autoRefreshComments: boolean | undefined;
-  setAutoRefreshComments: (value: boolean) => void;
+  setAutoRefreshComments: React.Dispatch<React.SetStateAction<boolean | undefined>>;
   askToUpdateFeed: boolean | undefined;
-  setAskToUpdateFeed: (value: boolean) => void;
+  setAskToUpdateFeed: React.Dispatch<React.SetStateAction<boolean | undefined>>;
   refreshOnFocus: boolean | undefined;
-  setRefreshOnFocus: (value: boolean) => void;
+  setRefreshOnFocus: React.Dispatch<React.SetStateAction<boolean | undefined>>;
   fastRefreshInterval: number | undefined;
-  setFastRefreshInterval: (value: number) => void;
+  setFastRefreshInterval: React.Dispatch<React.SetStateAction<number | undefined>>;
   slowRefreshInterval: number | undefined;
-  setSlowRefreshInterval: (value: number) => void;
+  setSlowRefreshInterval: React.Dispatch<React.SetStateAction<number | undefined>>;
   defaultSortComments: string | undefined;
-  setDefaultSortComments: (value: string) => void;
+  setDefaultSortComments: React.Dispatch<React.SetStateAction<string | undefined>>;
 
   // User Preferences Sync Error
   lastSyncError: unknown;
@@ -1068,7 +1072,7 @@ export interface FavoriteButtonProps {
 
 export interface ToggleFiltersProps {
   filter: FilterType;
-  name: string;
+  name?: string;
   tooltip?: string;
   disabled?: boolean;
 }
@@ -1108,7 +1112,7 @@ export interface FeedPageData {
 }
 
 export interface ThreadPage {
-  post?: RedditPost;
+  post?: RedditPost["data"];
   comments: RedditComment[];
   after?: string | null;
   before?: string | null;
@@ -1149,7 +1153,7 @@ export interface UseThreadReturn {
   isFetchingNextPage: boolean;
   fetchNextPage: () => Promise<unknown>;
   refetch: () => Promise<unknown>;
-  post: RedditPost | null;
+  post: RedditPost["data"] | null;
   comments: RedditComment[];
   loadMore: (commentId: string) => void;
   updateVote: (id: string, vote: number) => void;

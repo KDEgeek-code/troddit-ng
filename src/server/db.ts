@@ -39,6 +39,9 @@ const shouldUseSSL = () => {
   return false;
 };
 
+// Check if we're in development mode
+const isDev = process.env.NODE_ENV === 'development' || process.env.DB_ALLOW_SELF_SIGNED === 'true';
+
 // Database connection configuration
 const config: PoolConfig = {
   // Use DATABASE_URL if available, otherwise fall back to individual env vars
@@ -54,7 +57,9 @@ const config: PoolConfig = {
   }),
   
   // SSL configuration with auto-detection
-  ssl: shouldUseSSL() ? { rejectUnauthorized: false } : false,
+  ssl: shouldUseSSL() ? { 
+    rejectUnauthorized: !isDev // Only allow self-signed certs in development
+  } : false,
     
   // Pool configuration
   max: 20, // maximum number of clients in pool
@@ -76,7 +81,7 @@ pool.on('error', (err) => {
 });
 
 // Convenience query function with error handling
-export const query = <T = any>(text: string, params?: any[]) => pool.query<T>(text, params);
+export const query = <T = any>(text: string, params?: unknown[]) => pool.query<T>(text, params);
 
 // Graceful shutdown handling - only register once in dev
 const shutdown = async () => {

@@ -88,16 +88,28 @@ async function validateCacheStrategies() {
     
     for (const url of candidateUrls) {
       try {
+        const controller = new AbortController();
+        const timeoutId = setTimeout(() => controller.abort(), 5000); // 5 second timeout
+        
         const response = await fetch(url, { 
           method: 'GET',
-          cache: 'no-store'
+          cache: 'no-store',
+          signal: controller.signal
         });
+        
+        clearTimeout(timeoutId);
+        
         if (response.ok) {
           console.log(`✅ Found reachable endpoint: ${url}`);
           return url;
         }
       } catch (error) {
-        console.log(`❌ ${url}: ${error.message}`);
+        clearTimeout(timeoutId);
+        if (error.name === 'AbortError') {
+          console.log(`⏰ ${url}: Timeout`);
+        } else {
+          console.log(`❌ ${url}: ${error.message}`);
+        }
       }
     }
     

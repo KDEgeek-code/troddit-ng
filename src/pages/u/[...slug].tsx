@@ -22,7 +22,7 @@ const Sort = () => {
   const [subsArray, setSubsArray] = useState([]);
   const [username, setUserName] = useState("");
   const [isMulti, setIsMulti] = useState(false);
-  const [feedQuery, setFeedQuery] = useState<any>("");
+  const [feedQuery, setFeedQuery] = useState<string>("");
 
   const getSubsArray = async () => {
     let subs = await getUserMultiSubs({

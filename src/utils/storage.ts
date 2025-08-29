@@ -16,6 +16,12 @@ export async function migrateStorageValue<T>(
   setter: (value: T) => void,
   parseLocalStorage?: (value: string | null) => T
 ) {
+  // Early return for SSR
+  if (typeof window === 'undefined') {
+    setter(defaultValue);
+    return;
+  }
+
   try {
     // First check localForage
     const forageValue = await localForage.getItem(key);
@@ -29,18 +35,24 @@ export async function migrateStorageValue<T>(
     // Fall back to localStorage
     const localValue = localStorage.getItem(key);
     if (localValue !== null) {
+      let parsedValue: T;
       if (parseLocalStorage) {
-        setter(parseLocalStorage(localValue));
+        parsedValue = parseLocalStorage(localValue);
       } else {
         // Default parsing for common types
         if (typeof defaultValue === 'boolean') {
-          setter(localValue.includes('false') ? false as T : true as T);
+          parsedValue = (localValue.includes('false') ? false : true) as T;
         } else if (typeof defaultValue === 'number') {
-          setter(parseFloat(localValue) as T);
+          parsedValue = parseFloat(localValue) as T;
         } else {
-          setter(JSON.parse(localValue) as T);
+          parsedValue = JSON.parse(localValue) as T;
         }
       }
+      
+      // Persist migrated value to localForage and remove legacy localStorage
+      setter(parsedValue);
+      await localForage.setItem(key, parsedValue);
+      localStorage.removeItem(key);
     } else {
       setter(defaultValue);
     }

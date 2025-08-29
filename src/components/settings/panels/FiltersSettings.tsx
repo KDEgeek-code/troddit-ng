@@ -1,10 +1,14 @@
 import React from 'react';
-import Toggles from "../Toggles";
+import ToggleFilters from "../../ToggleFilters";
 import FilterEntities from "../FilterEntities";
+
+type FilterSetting = "self" | "links" | "images" | "videos" | "portrait" | "landscape" | "read" | "seen";
+
+const externalStyles = "rounded-lg group hover:bg-th-highlight p-2 cursor-pointer";
 
 const FiltersSettings: React.FC = () => (
   <>
-    {[
+    {([
       "self",
       "links",
       "images",
@@ -13,11 +17,10 @@ const FiltersSettings: React.FC = () => (
       "landscape",
       "read",
       "seen",
-    ].map((f) => (
+    ] as FilterSetting[]).map((f) => (
       <div key={f}>
         {/* Quick filter toggles */}
-        {/* @ts-ignore */}
-        <Toggles setting={f} withSubtext={true} externalStyles="rounded-lg group hover:bg-th-highlight p-2 cursor-pointer" />
+        <ToggleFilters filter={f as any} withSubtext={true} />
       </div>
     ))}
     <div className={"py-1 "}>
@@ -27,4 +30,3 @@ const FiltersSettings: React.FC = () => (
 );
 
 export default FiltersSettings;
-

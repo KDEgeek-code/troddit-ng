@@ -42,23 +42,25 @@ const Post = ({
     postName: post?.data?.name,
   });
   const [hideNSFW, setHideNSFW] = useState(false);
-  const [forceMute, setforceMute] = useState(0);
+  const [forceMute, setforceMute] = useState(false);
   const [origCommentCount, setOrigCommentCount] = useState<number>();
 
   useEffect(() => {
-    showNSFW === false && post?.data?.over_18
-      ? setHideNSFW(true)
-      : setHideNSFW(false);
-    post?.data.spoiler && setHideNSFW(true);
-    return () => {
+    const isComment = post?.kind === "t1";
+    if (!isComment) {
+      const p = post?.data as any;
+      showNSFW === false && p?.over_18 ? setHideNSFW(true) : setHideNSFW(false);
+      p?.spoiler && setHideNSFW(true);
+    } else {
       setHideNSFW(false);
-    };
+    }
+    return () => setHideNSFW(false);
   }, [showNSFW, post]);
 
   const handleClick = useCallback((e: React.MouseEvent, nav: { toComments?: boolean; toMedia?: boolean }) => {
     e.stopPropagation();
     if (!e.ctrlKey && !e.metaKey) {
-      openPost(post, postNum, nav, router.asPath);
+      openPost(post as any, postNum, nav, router.asPath);
       const multi = router.query?.m ?? "";
       const queryParams = `${multi ? `?m=${multi}` : ``}`;
       if (router.query?.frontsort) {
@@ -110,7 +112,7 @@ const Post = ({
 
   const isComment = useMemo(() => post?.kind === "t1", [post?.kind]);
 
-  const memoMediaDims = useMemo(() => mediaDimensions, [mediaDimensions?.[0], mediaDimensions?.[1]]);
+  const memoMediaDims = useMemo(() => mediaDimensions, [mediaDimensions]);
 
   useEffect(() => {
     if (read) {
@@ -135,7 +137,7 @@ const Post = ({
           <Row1
             post={post?.data}
             columns={columns}
-            hasMedia={post?.data?.mediaInfo?.hasMedia}
+            hasMedia={(post?.data as any)?.mediaInfo?.hasMedia}
             hideNSFW={hideNSFW}
             forceMute={forceMute}
             postNum={postNum}
@@ -152,7 +154,7 @@ const Post = ({
             inView={inView}
             columns={columns}
             post={post?.data}
-            hasMedia={post?.data?.mediaInfo?.hasMedia}
+            hasMedia={(post?.data as any)?.mediaInfo?.hasMedia}
             hideNSFW={hideNSFW}
             forceMute={forceMute}
             postNum={postNum}
@@ -169,7 +171,7 @@ const Post = ({
             inView={inView}
             columns={columns}
             post={post?.data}
-            hasMedia={post?.data?.mediaInfo?.hasMedia}
+            hasMedia={(post?.data as any)?.mediaInfo?.hasMedia}
             hideNSFW={hideNSFW}
             forceMute={forceMute}
             postNum={postNum}
@@ -189,11 +191,22 @@ const Post = ({
 };
 
 function areEqualPost(prev: any, next: any) {
+  // Shallow equality check for top-level props including function references
+  if (prev.handleClick !== next.handleClick || 
+      prev.onPostClick !== next.onPostClick ||
+      prev.checkCardHeight !== next.checkCardHeight) {
+    return false;
+  }
+
   const a = prev?.post?.data;
   const b = next?.post?.data;
+  
+  // Media dimensions comparison
   const mediaEq =
     (prev.mediaDimensions?.[0] ?? 0) === (next.mediaDimensions?.[0] ?? 0) &&
     (prev.mediaDimensions?.[1] ?? 0) === (next.mediaDimensions?.[1] ?? 0);
+  
+  // Base props comparison
   const baseEq =
     prev.cardStyle === next.cardStyle &&
     prev.columns === next.columns &&
@@ -201,12 +214,16 @@ function areEqualPost(prev: any, next: any) {
     prev.postNum === next.postNum &&
     prev.showNSFW === next.showNSFW &&
     prev.uniformMediaMode === next.uniformMediaMode;
+  
+  // Post core data comparison
   const postCoreEq =
     a?.name === b?.name &&
     a?.score === b?.score &&
     a?.num_comments === b?.num_comments &&
     a?.likes === b?.likes &&
     a?.edited === b?.edited;
+  
+  // Media info comparison
   const mediaInfoEq =
     !!a?.mediaInfo?.hasMedia === !!b?.mediaInfo?.hasMedia;
 

@@ -16,14 +16,16 @@ import { FiFilter } from "react-icons/fi";
 import LazySettingsPanel from "./LazySettings";
 
 class SettingsErrorBoundary extends React.Component<{ children: React.ReactNode }, { hasError: boolean }> {
-  constructor(props) {
+  constructor(props: { children: React.ReactNode }) {
     super(props);
     this.state = { hasError: false };
   }
   static getDerivedStateFromError() {
     return { hasError: true };
   }
-  componentDidCatch() {}
+  componentDidCatch(error: Error, errorInfo: React.ErrorInfo) {
+    console.error('Settings panel error:', error, errorInfo);
+  }
   render() {
     if (this.state.hasError) {
       return <div className="py-4 text-sm opacity-70">Failed to load settings panel.</div>;
@@ -56,10 +58,12 @@ const Settings = () => {
   }, [categories]);
 
   const handleCategoryChange = useCallback((id) => {
-    refs[id].current.scrollIntoView({
-      behavior: "smooth",
-      block: "start",
-    });
+    if (refs[id]?.current) {
+      refs[id].current.scrollIntoView({
+        behavior: "smooth",
+        block: "start",
+      });
+    }
   }, [refs]);
 
   return (

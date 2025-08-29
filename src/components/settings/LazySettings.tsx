@@ -59,6 +59,9 @@ export const LazySettingsPanel = ({ category }: LazySettingsPanelProps) => {
         return <BehaviorSettings />;
       case "History":
         return <HistorySettings />;
+      default:
+        console.warn(`Unknown settings category: ${category}`);
+        return <div className="py-4 text-sm opacity-70">Unknown settings category</div>;
     }
   })();
 

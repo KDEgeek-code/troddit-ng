@@ -76,7 +76,7 @@ const Thread = ({
   sort ??= context.defaultCommentSort;
   const { premium } = useTAuth();
   const { data: session, status } = useSession();
-  const { thread } = useThread(permalink, sort, undefined, withContext);
+  const thread = useThread(permalink, sort, undefined, withContext);
   const [showDuplicates, setShowDuplicates] = useState(() => duplicates);
   useEffect(() => {
     setShowDuplicates(duplicates);
@@ -90,10 +90,10 @@ const Thread = ({
   const containerRef = useRef<HTMLDivElement>(null);
   //initPost so later refetches will keep media (ie videos) stable
   const [initPost, setInitPost] = useState<any>(() =>
-    initialData?.name?.includes("t3_") ? initialData : {}
+    initialData?.name?.includes?.("t3_") ? initialData : {}
   );
   const [post, setPost] = useState<any>(() =>
-    initialData?.name?.includes("t3_") ? initialData : {}
+    initialData?.name?.includes?.("t3_") ? initialData : {}
   );
   const { read } = useRead(post?.name);
   const { sub } = useSubreddit(post?.subreddit);
@@ -584,10 +584,7 @@ const Thread = ({
                     <span className="flex flex-row flex-wrap items-center justify-start py-2 md:pl-3">
                       <a
                         className={" text-xl font-semibold mr-2"}
-                        href={
-                          `${post?.url}` ??
-                          `https://www.reddit.com${post?.permalink ?? ""}`
-                        }
+                        href={post?.url ?? `https://www.reddit.com${post?.permalink ?? ""}`}
                         target="_blank"
                         rel="noreferrer"
                       >
@@ -842,10 +839,7 @@ const Thread = ({
                           />
                         </div>
                         <a
-                          href={
-                            `${post?.url}` ??
-                            `https://www.reddit.com${post?.permalink ?? ""}`
-                          }
+                          href={post?.url ?? `https://www.reddit.com${post?.permalink ?? ""}`}
                           target="_blank"
                           rel="noreferrer"
                         >
@@ -1134,7 +1128,7 @@ const Thread = ({
                       }
                     >
                       {!(thread.data?.pages?.[0]?.comments?.length > 0) &&
-                      thread.isFetched &&
+                      !!thread.data &&
                       !thread.isError ? (
                         <span className="mt-8">{"no comments :("}</span>
                       ) : null}
@@ -1190,7 +1184,7 @@ const Thread = ({
                             sub?.data?.data?.comment_score_hide_mins
                           }
                           setCommentsReady={setCommentsReady}
-                          readTime={origReadTime}
+                          readTime={origReadTime ? new Date(origReadTime) : undefined}
                         />
                       )}
                     </div>

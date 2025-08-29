@@ -78,11 +78,12 @@ const ToggleFilters = ({
 
   useEffect(() => {
     if (quickToggle && toggled) {
-      context.applyFilters(); 
-      context.setUpdateFilters(n => n + 1);
+      const { applyFilters, setUpdateFilters } = context;
+      applyFilters(); 
+      setUpdateFilters(n => n + 1);
       invalidateKey(["feed"], true); 
     }
-  }, [quickToggle, toggled, context, invalidateKey]);
+  }, [quickToggle, toggled, context.applyFilters, context.setUpdateFilters, invalidateKey]);
   
 
   const [onHandleColor, setOnHandleColor] = useState<string>();

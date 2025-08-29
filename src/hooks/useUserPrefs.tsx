@@ -388,7 +388,7 @@ export const useUserPrefs = (
   });
 
   // Debounced sync function
-  const debouncedSync = useRef<any>(
+  const debouncedSync = useRef<((preferences: UserPreferences) => void) | null>(
     debounce(
       (preferences: UserPreferences) => {
         if (

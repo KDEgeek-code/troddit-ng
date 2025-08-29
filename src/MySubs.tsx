@@ -20,10 +20,10 @@ import toast from "react-hot-toast";
 
 import ToastCustom from "./components/toast/ToastCustom";
 import { useTAuth } from "./PremiumAuthContext";
-import { SubsContextValue, RedditSubreddit } from "../types";
+import { RedditSubreddit } from "../types";
 
-export const SubsContext = React.createContext<SubsContextValue | undefined>(undefined);
-export const useSubsContext = (): SubsContextValue => {
+export const SubsContext = React.createContext<any | undefined>(undefined);
+export const useSubsContext = (): any => {
   const context = useContext(SubsContext);
   if (!context) {
     throw new Error('useSubsContext must be used within MySubsProvider');
@@ -805,8 +805,10 @@ export const MySubsProvider = ({ children }: { children: React.ReactNode }) => {
           name: s,
           display_name: s,
           url: s?.substring(0, 2) === "u_" ? `/u/${s.substring(2)}` : `/r/${s}`,
-          user_has_favorited: context.localFavoriteSubs.find(
-            (f) => f?.toUpperCase() === s?.toUpperCase()
+          user_has_favorited: context.localFavoriteSubs.find((f) =>
+            (typeof f === 'string'
+              ? f.toUpperCase()
+              : (f as any)?.data?.display_name?.toUpperCase()) === s?.toUpperCase()
           ),
         },
       };
@@ -964,7 +966,7 @@ export const MySubsProvider = ({ children }: { children: React.ReactNode }) => {
     }
   };
 
-  const [error, seterror] = useState(false);
+  const [error, seterror] = useState<string | null>(null);
   // useEffect(() => {
   //   if (session && loadedSubs && mySubs.length < 1) {
   //     //loadAllFast();
@@ -987,7 +989,7 @@ export const MySubsProvider = ({ children }: { children: React.ReactNode }) => {
       const pState = isUser ? myFollowing : mySubs;
       if (isUser) {
         setMyFollowing((users) => {
-          let newFollows = users.map((user) => {
+          let newFollows = users.map((user: any) => {
             if (user?.data?.subreddit?.display_name === subname) {
               return {
                 ...user,

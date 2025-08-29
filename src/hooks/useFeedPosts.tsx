@@ -1,5 +1,5 @@
 import React, { useEffect, useState } from "react";
-import { UseInfiniteQueryResult } from "@tanstack/react-query";
+import { UseFeedReturn } from "../../types";
 import useFeedGallery from "./useFeedGallery";
 import ToastCustom from "../components/toast/ToastCustom";
 import toast from "react-hot-toast";
@@ -8,15 +8,7 @@ const useFeedPosts = ({
   askToUpdateFeed = true,
   setKey,
 }: {
-  feed: UseInfiniteQueryResult<
-    {
-      filtered: any;
-      after: any;
-      count: any;
-      prevPosts: any;
-    },
-    unknown
-  >;
+  feed: UseFeedReturn;
   askToUpdateFeed?: boolean;
   setKey(k: string): void;
 }) => {
@@ -109,7 +101,7 @@ const useFeedPosts = ({
       return isBlocked;
     };
     const posts = feed?.data?.pages
-      ?.map((page) => page.filtered)
+      ?.map((page) => page.posts as any)
       ?.flat() as any[];
     if (posts?.length > 0) {
       let isBlocked = false;

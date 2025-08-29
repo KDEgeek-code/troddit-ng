@@ -8,7 +8,15 @@ import FilterEntities from "./settings/FilterEntities";
 import useRefresh from "../hooks/useRefresh";
 import React from "react";
 
-const filters = ["self", "links", "images", "videos", "portrait", "landscape"];
+import { FilterType } from "../../types";
+const filters: FilterType[] = [
+  "self",
+  "links",
+  "images",
+  "videos",
+  "portrait",
+  "landscape",
+];
 
 const FilterModal = ({ toOpen }) => {
   const context: any = useMainContext();

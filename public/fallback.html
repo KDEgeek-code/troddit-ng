@@ -117,13 +117,21 @@
         <p class="description">
             You need an internet connection to browse Reddit. Please check your connection and try again.
         </p>
-        <button class="retry-button" onclick="tryAgain()">Try Again</button>
+        <button class="retry-button" id="retryBtn" type="button">Try Again</button>
     </div>
     
     <script>
         function tryAgain() {
             window.location.reload();
         }
+        
+        // Wait for DOM to be ready, then attach event listeners
+        document.addEventListener('DOMContentLoaded', function() {
+            const retryBtn = document.getElementById('retryBtn');
+            if (retryBtn) {
+                retryBtn.addEventListener('click', tryAgain);
+            }
+        });
         
         // Auto-retry when connection is restored
         window.addEventListener('online', function() {

@@ -8,27 +8,33 @@ async function ensureLocalForage() {
     return window.localforage;
   }
   
-  // Load via script tag injection from jsDelivr
-  return new Promise((resolve, reject) => {
-    const script = document.createElement('script');
-    script.src = 'https://cdn.jsdelivr.net/npm/localforage@1.10.0/dist/localforage.min.js';
-    script.async = true;
+  // Use locally installed localforage or mock for testing
+  try {
+    // Try to import from node_modules if available
+    if (typeof require !== 'undefined') {
+      return require('localforage');
+    }
     
-    script.onload = () => {
-      if (window.localforage) {
-        resolve(window.localforage);
-      } else {
-        reject(new Error('LocalForage not available after loading'));
-      }
+    // Fallback to global if available
+    if (window.localforage) {
+      return window.localforage;
+    }
+    
+    // Mock for testing environments
+    console.warn('LocalForage not available, using mock storage');
+    return {
+      setItem: async (key, value) => localStorage.setItem(key, JSON.stringify(value)),
+      getItem: async (key) => {
+        const item = localStorage.getItem(key);
+        return item ? JSON.parse(item) : null;
+      },
+      removeItem: async (key) => localStorage.removeItem(key),
+      clear: async () => localStorage.clear()
     };
-    
-    script.onerror = () => {
-      console.warn('Failed to load localForage from jsDelivr');
-      resolve(null);
-    };
-    
-    document.head.appendChild(script);
-  });
+  } catch (error) {
+    console.warn('Failed to load localForage:', error);
+    return null;
+  }
 }
 
 class PreferenceSyncTester {
@@ -244,35 +250,33 @@ class PreferenceSyncTester {
   }
 }
 
-// Auto-run tests
-const tester = new PreferenceSyncTester();
-tester.runAllTests();
-
-// Export for manual testing
-window.PreferenceSyncTester = PreferenceSyncTester;
-window.testPreferenceSync = () => new PreferenceSyncTester().runAllTests();
-
-// Manual preference restoration helper
-window.restorePrefs = async function() {
-  const tester = new PreferenceSyncTester();
-  try {
-    const response = await fetch('/api/user/prefs');
-    if (response.ok) {
-      const currentPrefs = await response.json();
-      if (currentPrefs.__test__) {
-        const cleanPrefs = { ...currentPrefs };
-        delete cleanPrefs.__test__;
-        await fetch('/api/user/prefs', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify(cleanPrefs)
-        });
-        tester.log('Test preferences cleaned up', 'success');
-      } else {
-        tester.log('No test preferences found to clean', 'info');
+// Export for manual testing (only in development)
+if (typeof window !== 'undefined' && (process?.env?.NODE_ENV === 'development' || process?.env?.TEST_HARNESS === 'true')) {
+  window.PreferenceSyncTester = PreferenceSyncTester;
+  window.testPreferenceSync = () => new PreferenceSyncTester().runAllTests();
+  
+  // Manual preference restoration helper
+  window.restorePrefs = async function() {
+    const tester = new PreferenceSyncTester();
+    try {
+      const response = await fetch('/api/user/prefs');
+      if (response.ok) {
+        const currentPrefs = await response.json();
+        if (currentPrefs.__test__) {
+          const cleanPrefs = { ...currentPrefs };
+          delete cleanPrefs.__test__;
+          await fetch('/api/user/prefs', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify(cleanPrefs)
+          });
+          tester.log('Test preferences cleaned up', 'success');
+        } else {
+          tester.log('No test preferences found to clean', 'info');
+        }
       }
+    } catch (error) {
+      tester.log(`Error in manual restore: ${error.message}`, 'error');
     }
-  } catch (error) {
-    tester.log(`Error in manual restore: ${error.message}`, 'error');
-  }
-};
+  };
+}

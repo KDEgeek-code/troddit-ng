@@ -41,12 +41,10 @@ const useThread = (
       const checkCommentChildren = (comment: RedditComment) => {
         if (comment?.kind === "t1") {
           prevState.set(comment?.data?.name, comment);
-          for (
-            let i = 0;
-            i < comment?.data?.replies?.data?.children?.length ?? 0;
-            i++
-          ) {
-            checkCommentChildren(comment.data.replies.data.children[i]);
+          const replies = typeof comment?.data?.replies === 'string' ? undefined : comment?.data?.replies;
+          const len = replies?.data?.children?.length || 0;
+          for (let i = 0; i < len; i++) {
+            checkCommentChildren((replies as any).data.children[i]);
           }
         }
       };
@@ -60,9 +58,10 @@ const useThread = (
       if (typeof repliesData === 'string') return newComment;
       if (newComment?.data?.replies && typeof repliesData !== 'string') {
         let children = repliesData?.data?.children ?? [];
-        if (prevComment?.data?.replies?.data?.children) {
+        const prevReplies = typeof prevComment?.data?.replies === 'string' ? undefined : prevComment?.data?.replies;
+        if (prevReplies?.data?.children) {
           if (children?.length > 0) {
-            let newChildren = prevComment?.data?.replies?.data?.children;
+            let newChildren = prevReplies?.data?.children as any[];
             newChildren = Array.from(
               [...newChildren, ...children?.filter((c) => c?.kind === "t1")]
                 .reduce((m, o) => m.set(o?.data?.name, o), new Map())
@@ -83,15 +82,13 @@ const useThread = (
             : newComment?.data?.collapsed,
         },
       };
-      if (comment?.data?.replies?.data?.children?.length > 0 && prevComment) {
-        for (
-          let i = 0;
-          i < comment?.data?.replies?.data?.children?.length;
-          i++
-        ) {
-          comment.data.replies.data.children[i] = processChildren(
+      const replies = typeof comment?.data?.replies === 'string' ? undefined : comment?.data?.replies;
+      const clen = replies?.data?.children?.length || 0;
+      if (clen > 0 && prevComment && replies) {
+        for (let i = 0; i < clen; i++) {
+          (replies as any).data.children[i] = processChildren(
             prevState,
-            comment?.data?.replies?.data?.children[i]
+            (replies as any).data.children[i]
           );
         }
       }
@@ -153,7 +150,7 @@ const useThread = (
           feedParams.pageParam.children,
           feedParams?.pageParam?.link_id
         );
-        token && context.setToken(token);
+        token && context.setToken(token as any);
         const comments = processComments(post_comments)?.map((c) => ({
           ...c,
           data: { ...c?.data },
@@ -169,10 +166,10 @@ const useThread = (
         sort,
         withcontext: withContext,
         loggedIn: !!session,
-        token: context.token,
+        token: context.token as any,
         isPremium: premium?.isPremium,
       });
-      token && context.setToken(token);
+      token && context.setToken(token as any);
       if (!post) {
         throw new Error("Error fetching post");
       }
@@ -197,7 +194,7 @@ const useThread = (
       enabled: isLoaded && threadId && !loading,
       staleTime: context?.autoRefreshComments ? 0 : Infinity, // 5 * 60 * 1000, //5 min
       getNextPageParam: (lastpage: ThreadPage) => {
-        const lastComment =
+        const lastComment: any =
           lastpage?.comments?.[lastpage?.comments?.length - 1];
         if (lastComment?.kind === "more") {
           return {
@@ -209,14 +206,19 @@ const useThread = (
     }
   );
 
-  const loadMore = useCallback((commentId: string) => {
+  const loadMore = useCallback(() => {
     // Implementation for loading more comments
     thread.fetchNextPage();
   }, [thread]);
 
   const updateVote = useCallback((id: string, vote: number) => {
-    // Implementation for updating vote on comment
-    // This would typically update the cache or make an API call
+    // TODO: Implement vote update functionality
+    // This should:
+    // 1. Update local state/cache optimistically
+    // 2. Make API call to update vote
+    // 3. Handle errors and rollback if needed
+    // 4. Update the thread/comments state
+    console.log(`Updating vote for comment ${id} to ${vote}`);
   }, []);
 
   // Extract post and comments from thread data

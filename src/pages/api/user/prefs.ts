@@ -132,6 +132,30 @@ async function handlePostRequest(req: NextApiRequest, res: NextApiResponse<ApiRe
     // Authenticate user
     const user = await authenticateUser(req);
     
+    // Rate limiting: 10 requests per minute per user
+    const rateLimitKey = `rate_limit:${user.username}`;
+    const currentTime = Date.now();
+    const windowMs = 60 * 1000; // 1 minute
+    
+    // Simple in-memory rate limiting (consider Redis for production)
+    if (!global.rateLimitStore) {
+      global.rateLimitStore = new Map();
+    }
+    
+    const userRateLimit = global.rateLimitStore.get(rateLimitKey);
+    if (userRateLimit && currentTime - userRateLimit.timestamp < windowMs) {
+      if (userRateLimit.count >= 10) {
+        res.setHeader('Retry-After', Math.ceil(windowMs / 1000));
+        return res.status(429).json({
+          status: 'Too Many Requests',
+          error: 'Rate limit exceeded. Please try again later.'
+        });
+      }
+      userRateLimit.count++;
+    } else {
+      global.rateLimitStore.set(rateLimitKey, { count: 1, timestamp: currentTime });
+    }
+    
     // Validate request body
     const validation = validatePreferencesData(req.body);
     if (!validation.isValid) {
@@ -141,14 +165,31 @@ async function handlePostRequest(req: NextApiRequest, res: NextApiResponse<ApiRe
       });
     }
     
-    // UPSERT preferences in database
-    await query(
-      `INSERT INTO user_prefs (user_id, data, updated_at) 
-       VALUES ($1, $2::jsonb, now()) 
-       ON CONFLICT (user_id) 
-       DO UPDATE SET data = $2::jsonb, updated_at = now()`,
-      [user.username, req.body]
-    );
+    // UPSERT preferences in database with retry logic
+    let attempts = 0;
+    const maxAttempts = 3;
+    
+    while (attempts < maxAttempts) {
+      try {
+        await query(
+          `INSERT INTO user_prefs (user_id, data, updated_at) 
+           VALUES ($1, $2::jsonb, now()) 
+           ON CONFLICT (user_id) 
+           DO UPDATE SET data = $2::jsonb, updated_at = now()`,
+          [user.username, req.body]
+        );
+        break; // Success, exit retry loop
+      } catch (dbError: any) {
+        attempts++;
+        if (attempts >= maxAttempts) {
+          throw dbError; // Re-throw after max attempts
+        }
+        
+        // Exponential backoff: 100ms, 200ms, 400ms
+        const delay = Math.pow(2, attempts - 1) * 100;
+        await new Promise(resolve => setTimeout(resolve, delay));
+      }
+    }
     
     // Return raw preferences directly to match GET format
     return res.status(200).json(req.body);

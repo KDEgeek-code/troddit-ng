@@ -1,8 +1,7 @@
-// import { , NextResponse } from "next/server";
+import { NextApiRequest, NextApiResponse } from "next";
 import { createClient } from "@supabase/supabase-js";
-const ACCEPT_EMAILS = JSON.parse(
-  process?.env?.NEXT_PUBLIC_ACCEPT_EMAILS ?? "false",
-);
+
+const ACCEPT_EMAILS = (process.env.ACCEPT_EMAILS || "false") === "true";
 const SUPABASE_URL = process.env.SUPABASE_URL;
 const SUPABASE_SERVICE_ROLE_KEY = process.env.SUPABASE_SERVICE_ROLE_KEY;
 
@@ -11,7 +10,7 @@ const validateEmail = (email: string) => {
   return re.test(email);
 };
 
-export default async function handler(req, res) {
+export default async function handler(req: NextApiRequest, res: NextApiResponse) {
   const body = req.body;
 
   if (!body.email) {
@@ -42,5 +41,5 @@ export default async function handler(req, res) {
       data: `email submitted, you will be contacted when sign ups are available`,
     });
   }
-  return res.status(401).json({ data: "not accepting emails" });
+  return res.status(503).json({ data: "not accepting emails" });
 }

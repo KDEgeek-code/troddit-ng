@@ -4,6 +4,16 @@ import { useMainContext } from "../MainContext";
 import ChildComments from "./ChildComments";
 import { CommentsProps, RedditComment, UseThreadReturn } from "../../types";
 
+type RedditMore = { kind: "more"; data?: { count?: number; id?: string } };
+type ExtendedCommentsProps = CommentsProps & {
+  readTime?: Date;
+  op?: string;
+  portraitMode?: boolean;
+  locked?: boolean;
+  scoreHideMins?: number;
+  setCommentsReady?: (ready: boolean) => void;
+};
+
 const Comments = ({
   comments,
   readTime,
@@ -16,20 +26,12 @@ const Comments = ({
   locked = false,
   scoreHideMins = 0,
   setCommentsReady,
-}: CommentsProps & {
-  readTime?: Date;
-  op?: string;
-  portraitMode?: boolean;
-  thread?: Pick<UseThreadReturn, 'isFetching' | 'fetchNextPage'>;
-  locked?: boolean;
-  scoreHideMins?: number;
-  setCommentsReady?: (ready: boolean) => void;
-}) => {
+}: ExtendedCommentsProps) => {
   const { data: session, status } = useSession();
   const context = useMainContext();
   sort ??= context.defaultSortComments;
 
-  const [commentsData, setCommentsData] = useState<RedditComment[] | undefined>(comments);
+  const [commentsData, setCommentsData] = useState<(RedditComment | RedditMore)[] | undefined>(comments);
   useEffect(() => {
     comments && setCommentsData(comments);
   }, [comments]);
@@ -45,15 +47,15 @@ const Comments = ({
       if (!thread) return;
       thread.fetchNextPage();
     } else {
-      context.toggleLoginModal();
+      if (context && typeof context.toggleLoginModal === 'function') {
+        context.toggleLoginModal();
+      }
     }
   }, [session, thread, context]);
 
-  const renderedComments = useMemo(() => commentsData, [commentsData]);
-
   return (
     <div className="">
-      {renderedComments?.map((comment, i) => (
+      {commentsData?.map((comment, i) => (
         <div key={`${i}_${comment?.data?.id}`} className="py-1 ">
           {comment?.kind === "more" && thread ? (
             <button
@@ -69,7 +71,7 @@ const Comments = ({
                 loadChildComments();
               }}
             >
-              Load {comment?.data?.count} More...
+              Load {(comment as RedditMore)?.data?.count} More...
             </button>
           ) : (
             <>
@@ -91,7 +93,7 @@ const Comments = ({
   );
 };
 
-function areEqualComments(prev: any, next: any) {
+function areEqualComments(prev: ExtendedCommentsProps, next: ExtendedCommentsProps) {
   const sameArray = prev.comments === next.comments; // rely on new arrays to trigger
   const base = prev.sort === next.sort && prev.depth === next.depth && prev.op === next.op && prev.locked === next.locked && prev.scoreHideMins === next.scoreHideMins && prev.thread?.isFetching === next.thread?.isFetching;
   const threadEq = prev.thread?.fetchNextPage === next.thread?.fetchNextPage; // compare thread ref identity

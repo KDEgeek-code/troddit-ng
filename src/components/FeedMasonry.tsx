@@ -1,5 +1,5 @@
 import React, { useCallback, useEffect, useMemo, useState } from "react";
-import { UseInfiniteQueryResult } from "@tanstack/react-query";
+import { UseFeedReturn } from "../../types";
 
 import {
   MasonryScroller,
@@ -27,15 +27,7 @@ import Spinner from "./ui/Spinner";
 interface MyMasonicProps {
   initItems: any[];
   curKey: any;
-  feed: UseInfiniteQueryResult<
-    {
-      filtered: any;
-      after: any;
-      count: any;
-      prevPosts: any;
-    },
-    unknown
-  >;
+  feed: UseFeedReturn;
 }
 
 const FeedMasonry = ({ initItems, feed, curKey }: MyMasonicProps) => {
@@ -379,7 +371,7 @@ const FeedMasonry = ({ initItems, feed, curKey }: MyMasonicProps) => {
     <>
       {!feed.isFetching &&
         !feed.hasNextPage &&
-        feed.isFetched &&
+        !!feed.data &&
         !feed.error && flatPosts?.length > 0 && (
           <div className="flex flex-row items-center justify-center my-6 text-sm font-light">
             <p>

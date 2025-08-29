@@ -59,7 +59,7 @@ export const MainProvider = ({ children }: { children: React.ReactNode }) => {
   const [columns, setColumns] = useState(3);
   const [posts, setPosts] = useState<RedditPost[]>([]);
   const [postNum, setPostNum] = useState(0);
-  const [token, setToken] = useState<string | null>(null);
+  const [token, setToken] = useState<{ expires?: number; accessToken?: string } | null>(null);
   const [gAfter, setGAfter] = useState("");
   const [safeSearch, setSafeSearch] = useState(true);
   const [progressKey, setProgressKey] = useState(0);
@@ -134,25 +134,33 @@ export const MainProvider = ({ children }: { children: React.ReactNode }) => {
 
   // Post interaction functions
   const updateLikes = (id: string, likes: boolean | null) => {
-    if (posts?.[id]?.data) {
+    if (posts?.length > 0) {
       setPosts((p) => {
-        const newPosts = [...p];
-        if (newPosts[parseInt(id)]?.data) {
-          newPosts[parseInt(id)].data.likes = likes;
+        const postIndex = p.findIndex(post => post?.data?.id === id);
+        if (postIndex >= 0 && p[postIndex]?.data) {
+          const newPosts = [...p];
+          const newPostData = { ...newPosts[postIndex].data };
+          newPostData.likes = likes;
+          newPosts[postIndex] = { ...newPosts[postIndex], data: newPostData };
+          return newPosts;
         }
-        return newPosts;
+        return p;
       });
     }
   };
 
   const updateSaves = (id: string, saved: boolean) => {
-    if (posts?.[id]?.data) {
+    if (posts?.length > 0) {
       setPosts((p) => {
-        const newPosts = [...p];
-        if (newPosts[parseInt(id)]?.data) {
-          newPosts[parseInt(id)].data.saved = saved;
+        const postIndex = p.findIndex(post => post?.data?.id === id);
+        if (postIndex >= 0 && p[postIndex]?.data) {
+          const newPosts = [...p];
+          const newPostData = { ...newPosts[postIndex].data };
+          newPostData.saved = saved;
+          newPosts[postIndex] = { ...newPosts[postIndex], data: newPostData };
+          return newPosts;
         }
-        return newPosts;
+        return p;
       });
     }
   };

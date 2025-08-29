@@ -30,7 +30,7 @@ const ChangeLogPage = ({ changelog }) => {
               "  shadow-md hover:shadow-2xl "
             }
           >
-            <ReactMarkdown rehypePlugins={[rehypeRaw]}>
+            <ReactMarkdown rehypePlugins={[rehypeRaw as any]}>
               {changelog}
             </ReactMarkdown>
           </p>

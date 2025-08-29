@@ -27,7 +27,24 @@ BEGIN
 END;
 $$ LANGUAGE plpgsql;
 
+-- Create a function to check JSONB data size limit (100KB)
+CREATE OR REPLACE FUNCTION check_user_prefs_data_size()
+RETURNS TRIGGER AS $$
+BEGIN
+    -- Check if the JSONB data exceeds 100KB (102400 bytes)
+    IF octet_length(NEW.data::text) > 102400 THEN
+        RAISE EXCEPTION 'User preferences data exceeds 100KB limit. Current size: % bytes', octet_length(NEW.data::text);
+    END IF;
+    RETURN NEW;
+END;
+$$ LANGUAGE plpgsql;
+
 -- Create a trigger to automatically update updated_at on UPDATE
 CREATE TRIGGER update_user_prefs_updated_at 
     BEFORE UPDATE ON user_prefs 
     FOR EACH ROW EXECUTE FUNCTION update_updated_at_column();
+
+-- Create a trigger to enforce data size limit on INSERT and UPDATE
+CREATE TRIGGER check_user_prefs_data_size_trigger
+    BEFORE INSERT OR UPDATE ON user_prefs
+    FOR EACH ROW EXECUTE FUNCTION check_user_prefs_data_size();

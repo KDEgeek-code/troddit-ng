@@ -87,8 +87,8 @@ const Row1 = ({
   }, [post?.score]);
 
   const onExpandToggle = useCallback(() => {
-    if (!(!hasMedia && !post?.selftext_html)) {
-      setexpand((s) => !!!s);
+    if (hasMedia || post?.selftext_html) {
+      setexpand((s) => !s);
     }
   }, [hasMedia, post?.selftext_html]);
   const onRowClick = useCallback((e: any) => { handleClick(e); }, [handleClick]);
@@ -135,7 +135,7 @@ const Row1 = ({
             {/* Thumbnail */}
             <a
               href={
-                `${post?.url?.replace("reddit.com", "troddit.com")}` ??
+                post?.url?.replace("reddit.com", "troddit.com") ??
                 `https://troddit.com${post?.permalink}`
               }
               target={"_blank"}
@@ -385,7 +385,7 @@ const Row1 = ({
                   >
                     <BiComment className="flex-none w-4 h-4 " />
                     <h1 className="">{`${
-                      numToString(post?.num_comments, 1000) ?? "??"
+                      numToString(post?.num_comments, 1000) || "??"
                     }`}</h1>
                     <h1 className="hidden md:block">
                       {`${post?.num_comments === 1 ? "comment" : "comments"}`}{" "}
@@ -416,7 +416,7 @@ const Row1 = ({
                   />
                 </div>
                 <a
-                  href={`${post?.url}` ?? "https://troddit.com"}
+                  href={post?.url ?? "https://troddit.com"}
                   target="_blank"
                   rel="noreferrer"
                 >

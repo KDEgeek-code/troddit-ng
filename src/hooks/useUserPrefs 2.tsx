@@ -132,17 +132,24 @@ const createSSRSafeStorage = () => {
     };
   }
 
-  // Client-side - dynamically import localforage
-  let localforage: any;
+  // Client-side - cache localforage instance
+  let lfInstance: any = null;
   
   const getLocalForage = async () => {
+    if (lfInstance) {
+      return lfInstance;
+    }
+    
     if (!localforage) {
       localforage = (await import('localforage')).default;
     }
-    return localforage.createInstance({
+    
+    lfInstance = localforage.createInstance({
       name: 'troddit',
       storeName: 'userPrefs'
     });
+    
+    return lfInstance;
   };
 
   return {

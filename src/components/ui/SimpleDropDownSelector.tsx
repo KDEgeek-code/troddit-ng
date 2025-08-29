@@ -11,7 +11,7 @@ const SimpleDropDownSelector = ({
 }: {
   selected: string;
   onSelect(item: any): any;
-  items: { [x: string]: { name?: string } | string };
+  items: Record<string, string | { name?: string }>;
   buttonName: string;
   buttonAriaLabel?: string;
   buttonTitle?: string;
@@ -57,9 +57,10 @@ const SimpleDropDownSelector = ({
                   }}
                 >
                   <span className="flex flex-row items-center justify-center h-6 capitalize">
-                    {(items[key] as { [x: string]: { name?: string } })?.name ??
-                      items[key] ??
-                      key}
+                    {(() => {
+                      const item = items[key];
+                      return typeof item === 'string' ? item : item?.name ?? key;
+                    })()}
                   </span>
                 </div>
               )}

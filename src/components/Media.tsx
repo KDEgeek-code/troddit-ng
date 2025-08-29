@@ -32,7 +32,7 @@ const Media = ({
   curPostName = undefined,
   handleClick = (() => {}) as MediaProps['handleClick'],
   imgFull = false,
-  forceMute = 0,
+  forceMute = false,
   portraitMode = false,
   fullMediaMode = false,
   postMode = false,
@@ -130,21 +130,7 @@ const Media = ({
     };
   }, [postLocal]);
 
-  // Ensure mediaInfo exists when post changes (async hydrate/permalink changes)
-  useEffect(() => {
-    const DOMAIN = window?.location?.hostname ?? "www.troddit.com";
-    let mounted = true;
-    const run = async () => {
-      if (postLocal && !postLocal.mediaInfo) {
-        const m = await findMediaInfo(postLocal, false, DOMAIN);
-        if (mounted) setPostLocal((prev) => ({ ...prev, mediaInfo: m }));
-      }
-    };
-    run();
-    return () => {
-      mounted = false;
-    };
-  }, [postLocal]);
+
 
   useEffect(() => {
     if (
@@ -264,7 +250,8 @@ const Media = ({
 
     const findIframe = async () => {
       if (postLocal?.mediaInfo?.iFrameHTML) {
-        if (postLocal?.mediaInfo?.iFrameHTML?.src?.includes("youtube.com")) {
+        const anyIframe: any = postLocal?.mediaInfo?.iFrameHTML as any;
+        if (anyIframe?.src?.includes("youtube.com")) {
           setisYTVid(true);
         }
         setIFrame(postLocal.mediaInfo.iFrameHTML);
@@ -317,8 +304,8 @@ const Media = ({
         });
         setPlaceholderInfo({
           src: checkURL(postLocal.thumbnail),
-          height: postLocal.thumbnail_height,
-          width: postLocal.thumbnail_width,
+          height: postLocal.mediaInfo?.thumbnailInfo?.height ?? imgheight,
+          width: postLocal.mediaInfo?.thumbnailInfo?.width ?? imgwidth,
         });
         setIsImage(true);
         return true;

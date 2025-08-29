@@ -18,6 +18,8 @@ import {
   FlattenedListing,
   UseFeedReturn,
   FeedPageData,
+  PostSeenMap,
+  Filters,
 } from "../../types";
 
 interface Params {
@@ -54,8 +56,8 @@ const useFeed = (params?: Params): UseFeedReturn => {
     userMode?: string;
     searchQuery?: string;
     safeSearch?: boolean;
-    prevPosts?: import("../../types").PostSeenMap;
-    filters: import("../../types").Filters;
+    prevPosts?: PostSeenMap;
+    filters: Filters;
   }
 
   const fetchFeed = useCallback(
@@ -74,7 +76,7 @@ const useFeed = (params?: Params): UseFeedReturn => {
         prevPosts: fetchParams.pageParam?.prevPosts ?? {},
         filters: fetchParams?.queryKey?.[
           fetchParams?.queryKey?.length - 1
-        ] as any,
+        ] as Filters,
       };
       //console.log("fetchParams?", fetchParams);
       //console.log("feedParms", feedParams);
@@ -206,7 +208,7 @@ const useFeed = (params?: Params): UseFeedReturn => {
         prevPosts: import("../../types").PostSeenMap,
         filterSubs: boolean,
       ) => {
-        data?.token && context.setToken(data?.token);
+        data?.token && context.setToken(data?.token as any);
 
         const { filtered, filtercount } = await filterPosts(
           data?.children,
@@ -243,24 +245,7 @@ const useFeed = (params?: Params): UseFeedReturn => {
         filterSubs,
       );
 
-      let returnData = {
-        filtered,
-        after: data.after,
-        count:
-          fetchParams?.pageParam === undefined
-            ? 0
-            : feedParams.count + data?.children?.length,
-        prevPosts: {
-          ...feedParams.prevPosts,
-          ...filtered.reduce((obj, post, index) => {
-            obj[post?.data?.name] = 1;
-            return obj;
-          }, {}),
-        },
-        filterCount: filtercount,
-      };
 
-      //console.log("returnData?", returnData);
 
       return {
         posts: filtered,
@@ -312,7 +297,7 @@ const useFeed = (params?: Params): UseFeedReturn => {
             });
             return acc;
           },
-          {} as import("../../types").PostSeenMap,
+          {} as PostSeenMap,
         );
 
         return {

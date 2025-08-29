@@ -17,5 +17,9 @@
     "incremental": true
   },
   "include": ["next-env.d.ts", "**/*.ts", "**/*.tsx", "**/*.d.ts"],
-  "exclude": ["node_modules"]
+  "exclude": [
+    "node_modules",
+    "src/MainContext_backup.tsx",
+    "src/hooks/useUserPrefs 2.tsx"
+  ]
 }

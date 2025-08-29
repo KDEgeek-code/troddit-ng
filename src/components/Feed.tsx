@@ -17,15 +17,31 @@ const Feed = ({ initialData = {} as any }) => {
   const feedState = useFeed({
     initialPosts: initialData,
   });
-  const feed = {
+  const feed = useMemo(() => ({
     data: feedState.data,
     error: feedState.error,
+    isError: feedState.isError,
+    isLoading: feedState.isLoading,
     hasNextPage: feedState.hasNextPage,
     isFetching: feedState.isFetching,
     isFetchingNextPage: feedState.isFetchingNextPage,
     fetchNextPage: feedState.fetchNextPage,
     refetch: feedState.refetch,
-  } as any;
+    invalidate: feedState.invalidate,
+    posts: feedState.posts,
+  }), [
+    feedState.data,
+    feedState.error,
+    feedState.isError,
+    feedState.isLoading,
+    feedState.hasNextPage,
+    feedState.isFetching,
+    feedState.isFetchingNextPage,
+    feedState.fetchNextPage,
+    feedState.refetch,
+    feedState.invalidate,
+    feedState.posts,
+  ]);
   const { invalidateAll, invalidateKey, refreshCurrent, fetchingCount } =
     useRefresh();
 

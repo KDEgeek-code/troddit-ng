@@ -135,6 +135,7 @@ const PostModal = ({
     setSort(sort);
   }, []);
   const windowWidth = useWindowWidth();
+  let updateTranslateX: (x: number, smooth?: boolean) => void = () => {};
 
   const handleBack = useCallback((animation: boolean = false, forceBack = false) => {
     if (mediaMode === false && useMediaMode) {
@@ -374,7 +375,7 @@ const PostModal = ({
   ]);
 
   const translateDiv = useRef<HTMLDivElement>(null);
-  const updateTranslateX = useCallback((x: number, smooth = windowWidth < 768) => {
+  updateTranslateX = useCallback((x: number, smooth = windowWidth < 768) => {
     if (translateDiv.current) {
       if (smooth) {
         translateDiv.current.style.transitionProperty = "transform";
@@ -595,12 +596,29 @@ const PostModal = ({
 };
 
 function areEqualPostModal(prev: any, next: any) {
+  // First check length, then compare actual content
+  if (prev.flattenedPosts?.length !== next.flattenedPosts?.length) {
+    return false;
+  }
+  
+  // Check if any posts have changed by comparing key identifiers
+  if (prev.flattenedPosts && next.flattenedPosts) {
+    for (let i = 0; i < prev.flattenedPosts.length; i++) {
+      const prevPost = prev.flattenedPosts[i];
+      const nextPost = next.flattenedPosts[i];
+      if (prevPost?.data?.name !== nextPost?.data?.name ||
+          prevPost?.data?.score !== nextPost?.data?.score ||
+          prevPost?.data?.num_comments !== nextPost?.data?.num_comments) {
+        return false;
+      }
+    }
+  }
+  
   return (
     prev.postNum === next.postNum &&
     prev.mediaMode === next.mediaMode &&
     prev.commentMode === next.commentMode &&
     prev.duplicates === next.duplicates &&
-    (prev.flattenedPosts?.length ?? 0) === (next.flattenedPosts?.length ?? 0) &&
     prev.permalink === next.permalink &&
     prev.returnRoute === next.returnRoute
   );

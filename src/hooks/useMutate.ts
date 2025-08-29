@@ -101,13 +101,13 @@ const useMutate = () => {
                 comment["data"][key] = value;
                 if (key === "likes") {
                   comment["data"]["score"] =
-                    comment["data"]["score"] + (variables?.increment ?? 0);
+                    comment["data"]["score"] + (variables?.increment || 0);
                 }
                 return comment;
               }
               for (
                 let i = 0;
-                i < comment?.data?.replies?.data?.children?.length ?? 0;
+                i < ((comment?.data?.replies?.data?.children?.length) || 0);
                 i++
               ) {
                 iterComments(

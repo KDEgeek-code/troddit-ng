@@ -888,9 +888,16 @@ const Card1 = ({
 function areEqualCard1(prev: any, next: any) {
   const a = prev?.post;
   const b = next?.post;
+  
+  // Check for callback and new post changes
+  if (prev.newPost !== next.newPost || prev.handleClick !== next.handleClick) {
+    return false;
+  }
+  
   const dimsEq =
     (prev.mediaDimensions?.[0] ?? 0) === (next.mediaDimensions?.[0] ?? 0) &&
     (prev.mediaDimensions?.[1] ?? 0) === (next.mediaDimensions?.[1] ?? 0);
+    
   return (
     a?.name === b?.name &&
     a?.score === b?.score &&
@@ -903,6 +910,7 @@ function areEqualCard1(prev: any, next: any) {
     prev.origCommentCount === next.origCommentCount &&
     prev.hasMedia === next.hasMedia &&
     prev.forceMute === next.forceMute &&
+    !!prev.read === !!next.read &&
     ((prev.read?.numComments ?? undefined) === (next.read?.numComments ?? undefined))
   );
 }

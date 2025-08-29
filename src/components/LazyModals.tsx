@@ -11,7 +11,7 @@ export const LazyMultiManageModal = React.lazy(() => import("./MultiManageModal"
 export const LazyMediaModal = React.lazy(() => import("./MediaModal"));
 
 export const ModalProvider = () => {
-  const context: any = useMainContext();
+  const context = useMainContext();
   return (
     <>
       <Suspense fallback={null}>
