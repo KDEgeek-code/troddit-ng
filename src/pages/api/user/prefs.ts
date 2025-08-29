@@ -21,12 +21,38 @@ interface ApiResponse {
 async function authenticateUser(req: NextApiRequest): Promise<AuthenticatedUser> {
   const token = await getToken({ req, secret: process.env.NEXTAUTH_SECRET });
   
+  // Check token existence and required fields
   if (!token || !token.name) {
     throw new Error('Unauthorized');
   }
-  
+
+  // Check token expiration (exp is in seconds since epoch)
+  if (typeof token.exp === 'number' && Date.now() >= token.exp * 1000) {
+    throw new Error('Token expired');
+  }
+
+  // Check token issuer if present
+  const expectedIssuer = process.env.NEXTAUTH_ISSUER;
+  if (expectedIssuer && token.iss && token.iss !== expectedIssuer) {
+    throw new Error('Invalid token issuer');
+  }
+
+  // Optionally check if user is still active in the database
+  // Assuming a 'users' table with 'username' and 'active' fields
+  const username = token.name.toLowerCase();
+  const userResult = await query(
+    'SELECT active FROM users WHERE username = $1',
+    [username]
+  );
+  if (
+    userResult.rows.length === 0 ||
+    userResult.rows[0].active === false
+  ) {
+    throw new Error('User is not active');
+  }
+
   // Use Reddit username only, normalized to lowercase
-  return { username: token.name.toLowerCase() };
+  return { username };
 }
 
 // JSON validation helper function
