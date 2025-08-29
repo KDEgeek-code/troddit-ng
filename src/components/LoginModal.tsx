@@ -1,5 +1,5 @@
 /* This example requires Tailwind CSS v2.0+ */
-import { Fragment, useEffect, useRef, useState } from "react";
+import { Fragment, useEffect, useRef, useState, useCallback } from "react";
 import { Dialog, Transition } from "@headlessui/react";
 import { MdErrorOutline } from "react-icons/md";
 import { useMainContext } from "../MainContext";
@@ -19,6 +19,15 @@ const Login = () => {
     } else {
       setOpen(false);
     }
+  }, [context]);
+
+  const onSignIn = useCallback(() => {
+    context.setLoginModal(false);
+    signIn("reddit");
+  }, [context]);
+
+  const onCancel = useCallback(() => {
+    context.setLoginModal(false);
   }, [context]);
 
   return (
@@ -88,10 +97,7 @@ const Login = () => {
                   aria-label="sign in"
                   type="button"
                   className="inline-flex justify-center w-full px-4 py-2 text-base font-medium border border-transparent rounded-md shadow-sm bg-th-accent hover:brightness-125 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-th-accent sm:ml-3 sm:w-auto sm:text-sm"
-                  onClick={() => {
-                    context.setLoginModal(false);
-                    signIn("reddit");
-                  }}
+                  onClick={onSignIn}
                 >
                   Login
                 </button>
@@ -99,7 +105,7 @@ const Login = () => {
                   aria-label="cancel"
                   type="button"
                   className="inline-flex justify-center w-full px-4 py-2 mt-3 text-base font-medium text-black bg-white border rounded-md shadow-sm border-th-border hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-th-accent sm:mt-0 sm:ml-3 sm:w-auto sm:text-sm"
-                  onClick={() => context.setLoginModal(false)}
+                  onClick={onCancel}
                   ref={cancelButtonRef}
                 >
                   Cancel
@@ -113,4 +119,4 @@ const Login = () => {
   );
 };
 
-export default Login;
+export default React.memo(Login);

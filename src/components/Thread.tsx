@@ -1214,4 +1214,4 @@ const Thread = ({
   );
 };
 
-export default Thread;
+export default React.memo(Thread);

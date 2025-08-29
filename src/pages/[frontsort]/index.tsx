@@ -8,43 +8,15 @@ import LoginModal from "../../components/LoginModal";
 import { loadPost } from "../../RedditAPI";
 import { findMediaInfo } from "../../../lib/utils";
 
-const FrontSortPage = ({ query, metaTags, post }) => {
+const FrontSortPage = () => {
+  const router = useRouter();
+  const query = router.query;
   return (
     <div>
       <Head>
         <title>
-          {metaTags?.ogTitle
-            ? `troddit · ${metaTags?.ogTitle}`
-            : query?.frontsort
-            ? `troddit · ${query?.frontsort}`
-            : "troddit"}
+          {query?.frontsort ? `troddit · ${query?.frontsort}` : "troddit"}
         </title>
-        {metaTags?.ogSiteName && (
-          <>
-            <meta property="og:site_name" content={metaTags?.ogSiteName} />
-            {metaTags?.ogDescription && (
-              <meta
-                property="og:description"
-                content={metaTags?.ogDescription}
-              />
-            )}
-            {metaTags?.ogTitle && (
-              <meta property="og:title" content={metaTags?.ogTitle} />
-            )}
-            {metaTags?.ogImage && (
-              <meta property="og:image" content={metaTags?.ogImage} />
-            )}
-            {metaTags?.ogHeight && (
-              <meta property="og:image:height" content={metaTags?.ogHeight} />
-            )}
-            {metaTags?.ogWidth && (
-              <meta property="og:image:width" content={metaTags?.ogWidth} />
-            )}
-            {metaTags?.ogType && (
-              <meta property="og:type" content={metaTags?.ogType} />
-            )}
-          </>
-        )}
       </Head>
 
       <main className="">
@@ -67,7 +39,6 @@ const FrontSortPage = ({ query, metaTags, post }) => {
                 direct={true}
                 curKey={undefined}
                 postNum={undefined}
-                postData={post}
               />
             </div>
           </>
@@ -75,11 +46,6 @@ const FrontSortPage = ({ query, metaTags, post }) => {
       </main>
     </div>
   );
-};
-
-FrontSortPage.getInitialProps = async (d) => {
-  const { query, req, res } = d;
-  return { query };
 };
 
 export default FrontSortPage;

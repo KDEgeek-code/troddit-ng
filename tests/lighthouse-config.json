@@ -1,0 +1,11 @@
+{
+  "extends": "lighthouse:default",
+  "settings": {
+    "onlyCategories": ["pwa"],
+    "throttling": {
+      "rttMs": 40,
+      "throughputKbps": 10240,
+      "cpuSlowdownMultiplier": 1
+    }
+  }
+}

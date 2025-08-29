@@ -8,7 +8,9 @@ import Awardings from "../Awardings";
 import { secondsToTime } from "../../../lib/utils";
 import Link from "next/link";
 
-const MiniCard = ({ post }) => {
+type MiniCardProps = { post: any };
+
+const MiniCard = ({ post }: MiniCardProps) => {
   return (
     <div className="flex items-start p-1 md:p-2 ">
       <div className="flex flex-col items-center gap-1 px-1 text-xs md:px-2">
@@ -127,4 +129,4 @@ const MiniCard = ({ post }) => {
   );
 };
 
-export default MiniCard;
+export default React.memo(MiniCard);

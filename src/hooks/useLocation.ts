@@ -1,15 +1,17 @@
-import { useSession } from 'next-auth/react';
-import { useRouter } from 'next/router';
-import React, { useEffect, useState } from 'react'
-import { useMainContext } from '../MainContext';
+import { useSession } from "next-auth/react";
+import { useRouter } from "next/router";
+import React, { useEffect, useState } from "react";
+import { useMainContext } from "../MainContext";
+import { useFilterContext } from "../contexts/FilterContext";
 
 const useLocation = (params?) => {
   const [ready, setReady] = useState(false);
-  const [domain, setDomain] = useState<string>(); 
+  const [domain, setDomain] = useState<string>();
   const { data: session, status } = useSession();
   const sessloading = status === "loading";
   const router = useRouter();
   const context: any = useMainContext();
+  const filterContext = useFilterContext();
   const {
     seenFilter,
     readFilter,
@@ -20,7 +22,7 @@ const useLocation = (params?) => {
     linkFilter,
     imgPortraitFilter,
     imgLandscapeFilter,
-  } = context;
+  } = filterContext;
 
   const [filters, setFilters] = useState({
     seenFilter: true,
@@ -35,13 +37,12 @@ const useLocation = (params?) => {
   });
 
   useEffect(() => {
-   const domain = window?.location?.hostname ?? 'www.troddit.com'
-   setDomain(domain); 
-  }, [])
-  
+    const domain = window?.location?.hostname ?? "www.troddit.com";
+    setDomain(domain);
+  }, []);
 
   useEffect(() => {
-    if (context.ready && context.filtersApplied > 0) {
+    if (context.ready && filterContext.filtersApplied > 0) {
       setFilters({
         seenFilter,
         readFilter,
@@ -56,7 +57,7 @@ const useLocation = (params?) => {
     }
     return () => {
       setFilters({
-        seenFilter : true,
+        seenFilter: true,
         readFilter: true,
         imgFilter: true,
         vidFilter: true,
@@ -67,8 +68,8 @@ const useLocation = (params?) => {
         imgLandscapeFilter: true,
       });
     };
-  // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [context.ready, context.filtersApplied]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [context.ready, filterContext.filtersApplied]);
 
   //const contextForceRefresh = context.forceRefresh;
 
@@ -101,9 +102,7 @@ const useLocation = (params?) => {
   useEffect(() => {
     //console.log(router, router.query);
     const query = router?.query;
-    if (
-      router.asPath?.includes("/comments/")
-    ) {
+    if (router.asPath?.includes("/comments/")) {
       //ignore these route changes to prevent feed fetch
       //console.log("CHANGE NOTHING");
     } else if (query?.frontsort) {
@@ -142,10 +141,16 @@ const useLocation = (params?) => {
         setSort((query?.sort as string) ?? "new");
       } else if (router.pathname == "/r/[...slug]") {
         setMode("SUBREDDIT");
-        setSort(query?.slug?.[1] ?? "hot");
+        setSort(Array.isArray(query?.slug) ? (query.slug[1] ?? "hot") : "hot");
       }
       //subreddit OR username..
-      setSubreddits(query?.slug?.[0]?.split(" ")?.join("+") ?? "");
+      setSubreddits(
+        Array.isArray(query?.slug)
+          ? (query.slug[0] ?? "").split(" ").join("+")
+          : typeof query?.slug === "string"
+            ? (query.slug as string).split(" ").join("+")
+            : "",
+      );
       setRange((query?.t as string) ?? "");
     } else {
       //console.log(router);
@@ -157,14 +162,20 @@ const useLocation = (params?) => {
       } else {
         setMode("NONE");
       }
-      setSort((query?.frontsort as string) ?? query?.sort ?? "hot");
+      setSort(
+        (query?.frontsort as string) ??
+          (Array.isArray(query?.sort)
+            ? (query?.sort[0] as string)
+            : (query?.sort as string)) ??
+          "hot",
+      );
       setRange((query?.t as string) ?? "");
     }
 
     return () => {
       //
     };
-  // eslint-disable-next-line react-hooks/exhaustive-deps
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [router, sessloading]);
 
   //monitor keys to control query
@@ -173,7 +184,8 @@ const useLocation = (params?) => {
     if (
       !sessloading &&
       context.ready &&
-      sort && sort !== "wiki" &&
+      sort &&
+      sort !== "wiki" &&
       mode &&
       mode !== "NONE" &&
       (subreddits || mode === "HOME" || mode === "SEARCH") &&
@@ -203,10 +215,11 @@ const useLocation = (params?) => {
         linkFilter,
         imgPortraitFilter,
         imgLandscapeFilter,
-        context.filtersApplied,
+        filterContext.filtersApplied,
       ].join(",");
 
-      const sessStatus = status === "authenticated" ? session.user?.name : status
+      const sessStatus =
+        status === "authenticated" ? session.user?.name : status;
 
       if (mode === "MULTI") {
         setKey([
@@ -269,7 +282,16 @@ const useLocation = (params?) => {
           filters,
         ]);
       } else if (mode === "HOME") {
-        setKey(["feed", mode, "", sort, range, sessStatus, filtersString, filters]);
+        setKey([
+          "feed",
+          mode,
+          "",
+          sort,
+          range,
+          sessStatus,
+          filtersString,
+          filters,
+        ]);
       } else {
         setKey([
           "feed",
@@ -288,7 +310,7 @@ const useLocation = (params?) => {
       setKey([""]);
       setReady(false);
     };
-  // eslint-disable-next-line react-hooks/exhaustive-deps
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [
     context.ready,
     mode,
@@ -303,7 +325,7 @@ const useLocation = (params?) => {
     filters,
   ]);
 
-  return{
+  return {
     key,
     ready,
     mode,
@@ -312,8 +334,8 @@ const useLocation = (params?) => {
     subreddits,
     userMode,
     searchQuery,
-    domain
-  }
-}
+    domain,
+  };
+};
 
-export default useLocation
+export default useLocation;

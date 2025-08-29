@@ -1,99 +1,88 @@
 import { useTheme } from "next-themes";
 import ReactSwitch from "react-switch";
 import { BsX, BsCheck } from "react-icons/bs";
-import { useMainContext } from "../MainContext";
-import React, { useEffect, useState } from "react";
+import { useFilterContext } from "../contexts/FilterContext";
+import React, { useEffect, useState, useCallback } from "react";
 import useRefresh from "../hooks/useRefresh";
-const ToggleFilters = ({ filter, withSubtext = false, quickToggle = false}) => {
-  const context: any = useMainContext();
+import { ToggleFiltersProps, FilterType, FilterContextValue } from "../../types";
+
+const ToggleFilters = ({ 
+  filter, 
+  withSubtext = false, 
+  quickToggle = false,
+  name,
+  tooltip,
+  disabled = false
+}: ToggleFiltersProps & {
+  withSubtext?: boolean;
+  quickToggle?: boolean;
+}) => {
+  const context = useFilterContext();
   const {invalidateKey} = useRefresh(); 
   const { theme, resolvedTheme } = useTheme();
-  const [checked, setChecked] = useState(false);
-  const [title, setTitle] = useState("filter toggle");
-  const [subtext, setSubtext] = useState("");
   const [mounted, setMounted] = useState(false);
+  const [toggled, setToggled] = useState(false);
+
   useEffect(() => {
     setMounted(true);
   }, []);
 
-  const [filterName, setFilterName] = useState("");
+  // Type-safe mapping of FilterType to FilterContextValue keys
+  const keyMap: Record<FilterType, keyof FilterContextValue> = {
+    seen: 'seenFilter',
+    read: 'readFilter', 
+    images: 'imgFilter',
+    videos: 'vidFilter',
+    galleries: 'galFilter',
+    self: 'selfFilter',
+    links: 'linkFilter',
+    score: 'scoreFilter',
+    portrait: 'imgPortraitFilter',
+    landscape: 'imgLandscapeFilter',
+    imgRes: 'imgResFilter'
+  } as const;
 
-  useEffect(() => {
-    //console.log(filter, context.filters, context.filters.filter)
-    let f = "";
-    switch (filter) {
-      case "seen":
-        setSubtext("Will attempt to filter seen posts if toggled off");
-        f = "seenFilter";
-        break;
-      case "read":
-        setSubtext("Filter or show read posts");
-        f = "readFilter";
-        break;
-      case "images":
-        setSubtext("Filter or show images");
-        f = "imgFilter";
-        break;
-      case "videos":
-        setSubtext(
-          "Filter or show videos (or gifs). Only applies to native videos."
-        );
-        f = "vidFilter";
-        break;
-      case "galleries":
-        setSubtext("Filter or show image galleries");
-        f = "galFilter";
-        break;
-      case "self":
-        setSubtext("Filter or show 'self' posts.");
-        f = "selfFilter";
-        break;
-      case "links":
-        setSubtext("Filter or show posts with an external link source");
-        f = "linkFilter";
-        break;
-      case "score":
-        f = "scoreFilter";
-        break;
-      case "portrait":
-        setSubtext("Filter or show images / videos with portrait orientation");
-        f = "imgPortraitFilter";
-        break;
-      case "landscape":
-        setSubtext("Filter or show images / videos with landscape orientation");
-        f = "imgLandscapeFilter";
-        break;
-    }
-    setTitle(
-      `${context[f] ? "Showing" : "Filtering"} ${
-        filter === "links"
-          ? "link posts"
-          : filter === "self"
-          ? "self posts"
-          : filter === "read"
-          ? "read posts"
-          : filter === "portrait" || filter === "landscape"
-          ? `${filter} images/videos`
-          : filter
-      } `
-    );
-    setFilterName(f);
-
- 
-  }, [filter]);
-
-  const [toggled,setToggled] = useState(false);
-
-  useEffect(() => {
-    if (filterName){
-      context[filterName] ? setChecked(true) : setChecked(false);
-      if (quickToggle && toggled){
-        context.applyFilters(); 
-        invalidateKey(["feed"], true); 
-      }
-    }
+  // Derive values directly from context
+  const filterKey = keyMap[filter];
+  const filterValue = context[filterKey];
+  const checked = !!filterValue;
   
-  }, [context?.[filterName]])
+  const subtext = (() => {
+    switch (filter) {
+      case "seen": return "Will attempt to filter seen posts if toggled off";
+      case "read": return "Filter or show read posts";
+      case "images": return "Filter or show images";
+      case "videos": return "Filter or show videos (or gifs). Only applies to native videos.";
+      case "galleries": return "Filter or show image galleries";
+      case "self": return "Filter or show 'self' posts.";
+      case "links": return "Filter or show posts with an external link source";
+      case "score": return "Filter by score threshold";
+      case "portrait": return "Filter or show images / videos with portrait orientation";
+      case "landscape": return "Filter or show images / videos with landscape orientation";
+      case "imgRes": return "Filter by image resolution";
+      default: return "";
+    }
+  })();
+
+  const title = `${filterValue ? "Showing" : "Filtering"} ${
+    filter === "links"
+      ? "link posts"
+      : filter === "self"
+      ? "self posts"
+      : filter === "read"
+      ? "read posts"
+      : filter === "portrait" || filter === "landscape"
+      ? `${filter} images/videos`
+      : filter
+  }`;
+
+  useEffect(() => {
+    if (quickToggle && toggled) {
+      context.applyFilters(); 
+      context.setUpdateFilters(n => n + 1);
+      invalidateKey(["feed"], true); 
+    }
+  }, [quickToggle, toggled, context, invalidateKey]);
   
 
   const [onHandleColor, setOnHandleColor] = useState<string>();
@@ -140,7 +129,16 @@ const ToggleFilters = ({ filter, withSubtext = false, quickToggle = false}) => {
           )}
         </span>
         <ReactSwitch
-          onChange={() => {setToggled(true);context.toggleFilter(filter);}}
+          onChange={useCallback(() => {
+            context.toggleFilter(filter);
+            if (quickToggle) {
+              context.applyFilters(); 
+              context.setUpdateFilters(n => n + 1); 
+              invalidateKey(["feed"], true);
+            } else {
+              setToggled(t => !t);
+            }
+          }, [context, filter, quickToggle, invalidateKey])}
           checked={checked}
           checkedHandleIcon={<div></div>}
           checkedIcon={

@@ -12,7 +12,8 @@ import {
 import { useWindowSize } from "@react-hook/window-size";
 import { localSeen, useMainContext } from "../MainContext";
 
-import PostModal from "./PostModal";
+import dynamic from 'next/dynamic';
+const PostModal = dynamic(() => import('./PostModal'), { ssr: false, loading: () => null });
 import { useRouter } from "next/router";
 import { useSession } from "next-auth/react";
 import { InView } from "react-intersection-observer";
@@ -114,7 +115,7 @@ const FeedMasonry = ({ initItems, feed, curKey }: MyMasonicProps) => {
 
   const [lastRoute, setLastRoute] = useState("");
   const [selectedPost, setSelectedPost] = useState<any>();
-  const openPost = (post, postNum, nav, lastRoute) => {
+  const openPost = useCallback((post, postNum, nav, lastRoute) => {
     context.setPauseAll(true);
     setSelectedPost({
       post: post,
@@ -122,7 +123,7 @@ const FeedMasonry = ({ initItems, feed, curKey }: MyMasonicProps) => {
       nav: nav,
       lastRoute: lastRoute,
     });
-  };
+  }, [context]);
   useEffect(() => {
     if (context.cardStyle === "row1") {
       setCols(1);
@@ -470,4 +471,4 @@ const FeedMasonry = ({ initItems, feed, curKey }: MyMasonicProps) => {
   );
 };
 
-export default FeedMasonry;
+export default React.memo(FeedMasonry);

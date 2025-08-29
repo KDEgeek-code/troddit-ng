@@ -744,7 +744,7 @@ const VideoHandler = ({
                   onClick={
                     (e) => {
                       if (!browser.includes("Safari") && videoRef.current) {
-                        context.setaudioOnHover(videoRef.current.muted);
+                        context.setAudioOnHover(videoRef.current.muted);
                       }
                       audioControl(e, true);
                     }

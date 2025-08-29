@@ -1,13 +1,24 @@
-import React, { useState } from 'react'
+import React, { useState, useCallback } from 'react'
 import { BsStar, BsStarFill } from 'react-icons/bs'
 import { useSubsContext } from '../MySubs';
+import { FavoriteButtonProps } from '../../types';
 
-const FavoriteButton = ({sub, favorited, isUser=false, forceShow=false}) => {
-  const subsContext: any = useSubsContext();
+const FavoriteButton = ({
+  sub, 
+  favorited, 
+  isUser = false, 
+  forceShow = false
+}: FavoriteButtonProps & {
+  favorited?: boolean;
+  isUser?: boolean;
+  forceShow?: boolean;
+}) => {
+  const subsContext = useSubsContext();
  // const [favorited, setFavorited] = useState(sub?.data?.user_has_favorited ?? false); 
-  const handleClick = async() => {
-    let res = await subsContext.favorite(!favorited, sub?.data?.display_name, isUser); 
-  }
+  const handleClick = useCallback(async() => {
+    const subName = typeof sub === 'string' ? sub : sub?.data?.display_name;
+    let res = await subsContext.favorite(!favorited, subName, isUser); 
+  }, [subsContext, favorited, sub, isUser]);
 
   return (
     <button

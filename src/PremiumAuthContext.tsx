@@ -7,7 +7,7 @@ type premiumInfo = {
   isPremium: boolean;
   expires?: Date;
 };
-type PremiumAuthContextType = Partial<
+export type PremiumAuthContextType = Partial<
   Pick<
     useAuthReturn,
     "getToken" | "isSignedIn" | "sessionId" | "signOut" | "userId" | "actor"

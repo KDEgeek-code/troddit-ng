@@ -1,5 +1,5 @@
 import { useSession } from "next-auth/react";
-import React from "react";
+import React, { useCallback } from "react";
 import {
   QueryFunctionContext,
   useInfiniteQuery,
@@ -9,12 +9,18 @@ import { fixCommentFormat } from "../../lib/utils";
 import { useMainContext } from "../MainContext";
 import { loadMoreComments, loadPost } from "../RedditAPI";
 import { useTAuth } from "../PremiumAuthContext";
+import { RedditPost, RedditComment, UseThreadReturn, ThreadPage } from "../../types";
 
-const useThread = (permalink, sort, initialData?, withContext = false) => {
+const useThread = (
+  permalink: string, 
+  sort: string, 
+  initialData?: RedditPost, 
+  withContext = false
+): UseThreadReturn => {
   const { isLoaded, premium } = useTAuth();
   const { data: session, status } = useSession();
   const queryClient = useQueryClient();
-  const context: any = useMainContext();
+  const context = useMainContext();
   const loading = status === "loading";
   const splitPermalink = permalink?.split("/");
   const threadId =
@@ -28,11 +34,11 @@ const useThread = (permalink, sort, initialData?, withContext = false) => {
       ? splitPermalink?.[6]
       : ""; //for direct comments
 
-  const updateComments = (prevComments, newComments) => {
+  const updateComments = useCallback((prevComments: RedditComment[], newComments: RedditComment[]) => {
     // let update = queryClient.setQueryData(["thread", threadId, sort, commentId, withContext], (newData:any) => {
-    const getPrevState = (prevComments) => {
-      const prevState = new Map();
-      const checkCommentChildren = (comment) => {
+    const getPrevState = (prevComments: RedditComment[]): Map<string, RedditComment> => {
+      const prevState = new Map<string, RedditComment>();
+      const checkCommentChildren = (comment: RedditComment) => {
         if (comment?.kind === "t1") {
           prevState.set(comment?.data?.name, comment);
           for (
@@ -48,11 +54,12 @@ const useThread = (permalink, sort, initialData?, withContext = false) => {
       return prevState;
     };
 
-    const processChildren = (prevState, newComment) => {
-      let prevComment = prevState.get(newComment?.data?.name);
+    const processChildren = (prevState: Map<string, RedditComment>, newComment: RedditComment): RedditComment => {
+      let prevComment: RedditComment | undefined = prevState.get(newComment?.data?.name);
       let repliesData = newComment?.data?.replies;
-      if (newComment?.data?.replies) {
-        let children = newComment?.data?.replies?.data?.children ?? [];
+      if (typeof repliesData === 'string') return newComment;
+      if (newComment?.data?.replies && typeof repliesData !== 'string') {
+        let children = repliesData?.data?.children ?? [];
         if (prevComment?.data?.replies?.data?.children) {
           if (children?.length > 0) {
             let newChildren = prevComment?.data?.replies?.data?.children;
@@ -97,9 +104,9 @@ const useThread = (permalink, sort, initialData?, withContext = false) => {
     });
 
     return newCommentsEdit;
-  };
+  }, []);
 
-  const loadChildComments = async (children: string[], link_id) => {
+  const loadChildComments = useCallback(async (children: string[], link_id: string) => {
     let childrenstring = children.join(",");
     if (session) {
       const data = await loadMoreComments({
@@ -118,10 +125,10 @@ const useThread = (permalink, sort, initialData?, withContext = false) => {
     } else {
       throw new Error("Unable to fetch more comments, must be logged in");
     }
-  };
+  }, [session, context.token, sort, premium]);
 
-  const processComments = (newComments) => {
-    let prevQueryData: any = queryClient.getQueryData([
+  const processComments = useCallback((newComments: RedditComment[]) => {
+    const prevQueryData = queryClient.getQueryData<import('@tanstack/react-query').InfiniteData<ThreadPage>>([
       "thread",
       threadId,
       sort,
@@ -137,9 +144,9 @@ const useThread = (permalink, sort, initialData?, withContext = false) => {
       comments = updateComments(prevComments, newComments);
     }
     return comments;
-  };
+  }, [queryClient, threadId, sort, commentId, withContext, updateComments]);
 
-  const fetchThread = async (feedParams: QueryFunctionContext) => {
+  const fetchThread = useCallback(async (feedParams: QueryFunctionContext) => {
     try {
       if (feedParams?.pageParam?.children?.length > 0) {
         const { post_comments, token } = await loadChildComments(
@@ -181,15 +188,15 @@ const useThread = (permalink, sort, initialData?, withContext = false) => {
         throw err;
       }
     }
-  };
+  }, [loadChildComments, processComments, permalink, sort, withContext, session, context, premium]);
 
-  const thread = useInfiniteQuery(
+  const thread = useInfiniteQuery<ThreadPage, Error>(
     ["thread", threadId, sort, commentId, withContext, session?.user?.name],
     fetchThread,
     {
       enabled: isLoaded && threadId && !loading,
       staleTime: context?.autoRefreshComments ? 0 : Infinity, // 5 * 60 * 1000, //5 min
-      getNextPageParam: (lastpage: any) => {
+      getNextPageParam: (lastpage: ThreadPage) => {
         const lastComment =
           lastpage?.comments?.[lastpage?.comments?.length - 1];
         if (lastComment?.kind === "more") {
@@ -202,8 +209,34 @@ const useThread = (permalink, sort, initialData?, withContext = false) => {
     }
   );
 
+  const loadMore = useCallback((commentId: string) => {
+    // Implementation for loading more comments
+    thread.fetchNextPage();
+  }, [thread]);
+
+  const updateVote = useCallback((id: string, vote: number) => {
+    // Implementation for updating vote on comment
+    // This would typically update the cache or make an API call
+  }, []);
+
+  // Extract post and comments from thread data
+  const post = thread.data?.pages?.[0]?.post ?? null;
+  const comments = thread.data?.pages?.flatMap(page => page.comments ?? []) ?? [];
+
   return {
-    thread,
+    data: thread.data,
+    isLoading: thread.isLoading,
+    isFetching: thread.isFetching,
+    isError: thread.isError,
+    error: thread.error,
+    hasNextPage: thread.hasNextPage ?? false,
+    isFetchingNextPage: thread.isFetchingNextPage,
+    fetchNextPage: thread.fetchNextPage,
+    refetch: thread.refetch,
+    post,
+    comments,
+    loadMore,
+    updateVote,
   };
 };
 

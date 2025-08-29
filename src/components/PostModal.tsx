@@ -1,4 +1,4 @@
-import React, { useEffect, useRef, useState } from "react";
+import React, { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { useRouter } from "next/router";
 import { RiArrowGoBackLine } from "react-icons/ri";
 import { AiOutlineRight, AiOutlineLeft } from "react-icons/ai";
@@ -58,7 +58,7 @@ const PostModal = ({
       setShowDuplicates(false);
     }
   }, [router.query]);
-  const handleBackToThread = () => {
+  const handleBackToThread = useCallback(() => {
     //go back
     if (!duplicates && showDuplicates) {
       router.back();
@@ -71,7 +71,7 @@ const PostModal = ({
         { shallow: true }
       );
     }
-  };
+  }, [duplicates, showDuplicates, router]);
 
   useEffect(() => {
     if (showUI) {
@@ -130,13 +130,13 @@ const PostModal = ({
     };
   }, []);
 
-  const updateSort = async (e, sort) => {
+  const updateSort = useCallback(async (e, sort) => {
     e.preventDefault();
     setSort(sort);
-  };
+  }, []);
   const windowWidth = useWindowWidth();
 
-  const handleBack = (animation: boolean = false, forceBack = false) => {
+  const handleBack = useCallback((animation: boolean = false, forceBack = false) => {
     if (mediaMode === false && useMediaMode) {
       updateTranslateX(0);
       setUseMediaMode(false);
@@ -170,7 +170,7 @@ const PostModal = ({
         animation ? 200 : 0
       );
     }
-  };
+  }, [mediaMode, useMediaMode, windowWidth, setSelect, returnRoute, router, direct, updateTranslateX]);
 
   useEffect(() => {
     // let feedData = getFeedData() as any[];
@@ -180,7 +180,7 @@ const PostModal = ({
     //   setFlattenedPosts(feedData);
   }, [curPostNum, feedLoading, flattenedPosts.length, fetchMore]);
 
-  const changePost = (move: 1 | -1) => {
+  const changePost = useCallback((move: 1 | -1) => {
     // setAutoPlay(false);
     const params = new Proxy(new URLSearchParams(window.location.search), {
       get: (searchParams, prop) => searchParams.get(prop as string),
@@ -205,14 +205,14 @@ const PostModal = ({
       );
       setCurPostNum((p) => p + move);
     }
-  };
+  }, [flattenedPosts, curPostNum, router, mediaMode]);
 
   const { getGlobalData, setGlobalData, clearGlobalState } = useGlobalState([
     "videoLoadData",
   ]);
 
-  const hasPrevPost = flattenedPosts?.[curPostNum - 1]?.data;
-  const hasNextPost = flattenedPosts?.[curPostNum + 1]?.data;
+  const hasPrevPost = useMemo(() => flattenedPosts?.[curPostNum - 1]?.data, [flattenedPosts, curPostNum]);
+  const hasNextPost = useMemo(() => flattenedPosts?.[curPostNum + 1]?.data, [flattenedPosts, curPostNum]);
   const innerInt = useRef<NodeJS.Timer | number | undefined>();
   useEffect(() => {
     let currNum = curPostNum;
@@ -374,7 +374,7 @@ const PostModal = ({
   ]);
 
   const translateDiv = useRef<HTMLDivElement>(null);
-  const updateTranslateX = (x: number, smooth = windowWidth < 768) => {
+  const updateTranslateX = useCallback((x: number, smooth = windowWidth < 768) => {
     if (translateDiv.current) {
       if (smooth) {
         translateDiv.current.style.transitionProperty = "transform";
@@ -392,7 +392,7 @@ const PostModal = ({
         `translate3d(${x}px, 0px, 0px)`
       );
     }
-  };
+  }, [windowWidth]);
 
   return (
     <>
@@ -594,4 +594,16 @@ const PostModal = ({
   );
 };
 
-export default PostModal;
+function areEqualPostModal(prev: any, next: any) {
+  return (
+    prev.postNum === next.postNum &&
+    prev.mediaMode === next.mediaMode &&
+    prev.commentMode === next.commentMode &&
+    prev.duplicates === next.duplicates &&
+    (prev.flattenedPosts?.length ?? 0) === (next.flattenedPosts?.length ?? 0) &&
+    prev.permalink === next.permalink &&
+    prev.returnRoute === next.returnRoute
+  );
+}
+
+export default React.memo(PostModal, areEqualPostModal);

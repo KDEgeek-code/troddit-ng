@@ -2,8 +2,10 @@
 import Image from "next/legacy/image";
 import Gallery from "./Gallery";
 import VideoHandler from "./media/video/VideoHandler";
-import React, { useEffect, useMemo, useRef, useState } from "react";
+import React, { useEffect, useMemo, useRef, useState, useCallback } from "react";
 import { useMainContext } from "../MainContext";
+import { useUIContext } from "../contexts/UIContext";
+import { useMediaContext } from "../contexts/MediaContext";
 import { TwitterTweetEmbed } from "react-twitter-embed";
 import { useTheme } from "next-themes";
 import { useWindowSize, useWindowWidth } from "@react-hook/window-size";
@@ -17,7 +19,7 @@ import { ImEmbed } from "react-icons/im";
 import { BsBoxArrowInUpRight } from "react-icons/bs";
 import { BiExpand } from "react-icons/bi";
 import ExternalLink from "./ui/ExternalLink";
-import { GalleryInfo } from "../../types";
+import { MediaProps, GalleryInfo, PostData } from "../../types";
 import LoaderPuff from "./ui/LoaderPuff";
 import { logApiRequest } from "../RedditAPI";
 const scrollStyle =
@@ -28,7 +30,7 @@ const Media = ({
   columns,
   cardStyle = undefined as undefined | "card1" | "card2" | "row1" | "default",
   curPostName = undefined,
-  handleClick = (a: any, b: any) => {},
+  handleClick = (() => {}) as MediaProps['handleClick'],
   imgFull = false,
   forceMute = 0,
   portraitMode = false,
@@ -45,8 +47,34 @@ const Media = ({
   inView = true,
   fill = false,
   checkCardHeight = () => {},
+}: MediaProps & {
+  cardStyle?: "card1" | "card2" | "row1" | "default";
+  curPostName?: string;
+  handleClick?: MediaProps['handleClick'];
+  portraitMode?: boolean;
+  fullMediaMode?: boolean;
+  postMode?: boolean;
+  read?: boolean;
+  card?: boolean;
+  hide?: boolean;
+  fullRes?: boolean;
+  xPostMode?: boolean;
+  containerDims?: [number, number];
+  mediaDimensions?: [number, number];
+  uniformMediaMode?: boolean;
+  inView?: boolean;
+  checkCardHeight?: () => void;
 }) => {
-  const context: any = useMainContext();
+  const [postLocal, setPostLocal] = useState(post);
+
+  // Sync postLocal with post prop changes
+  useEffect(() => {
+    setPostLocal(post);
+  }, [post]);
+
+  const context = useMainContext();
+  const uiContext = useUIContext();
+  const mediaContext = useMediaContext();
   const windowWidth = useWindowWidth();
   const [windowHeight, setWindowHeight] = useState(0);
   useEffect(() => {
@@ -84,10 +112,10 @@ const Media = ({
   const [mediaLoaded, setMediaLoaded] = useState(false);
   const [loaded, setLoaded] = useState(false);
 
-  const onLoaded = () => {
+  const onLoaded = useCallback(() => {
     setMediaLoaded(true);
     checkCardHeight && checkCardHeight();
-  };
+  }, [checkCardHeight]);
 
   const [allowIFrame, setAllowIFrame] = useState<boolean>(() => !!postMode);
   const [isIFrame, setIsIFrame] = useState(false);
@@ -100,12 +128,28 @@ const Media = ({
       setIsIFrame(false);
       setIFrame(undefined);
     };
-  }, [post]);
+  }, [postLocal]);
+
+  // Ensure mediaInfo exists when post changes (async hydrate/permalink changes)
+  useEffect(() => {
+    const DOMAIN = window?.location?.hostname ?? "www.troddit.com";
+    let mounted = true;
+    const run = async () => {
+      if (postLocal && !postLocal.mediaInfo) {
+        const m = await findMediaInfo(postLocal, false, DOMAIN);
+        if (mounted) setPostLocal((prev) => ({ ...prev, mediaInfo: m }));
+      }
+    };
+    run();
+    return () => {
+      mounted = false;
+    };
+  }, [postLocal]);
 
   useEffect(() => {
     if (
-      (postMode || columns === 1 || context.embedsEverywhere) &&
-      !context.disableEmbeds &&
+      (postMode || columns === 1 || !!mediaContext.embedsEverywhere) &&
+      !mediaContext.disableEmbeds &&
       !uniformMediaMode
     ) {
       setAllowIFrame(true);
@@ -118,54 +162,43 @@ const Media = ({
   }, [
     postMode,
     columns,
-    context.disableEmbeds,
-    context.embedsEverywhere,
+    mediaContext.disableEmbeds,
+    mediaContext.embedsEverywhere,
     uniformMediaMode,
   ]);
 
+  // Effect 1: Hydrate mediaInfo when missing
   useEffect(() => {
     const DOMAIN = window?.location?.hostname ?? "www.troddit.com";
+    let mounted = true;
+
+    const hydrateMediaInfo = async () => {
+      if (postLocal && !postLocal.mediaInfo) {
+        const m = await findMediaInfo(postLocal, false, DOMAIN);
+        if (mounted) setPostLocal(prev => ({ ...prev, mediaInfo: m }));
+      }
+    };
+
+    if (postLocal && !postLocal.mediaInfo) {
+      hydrateMediaInfo();
+    }
+
+    return () => {
+      mounted = false;
+    };
+  }, [postLocal]);
+
+  // Effect 2: Derive image/video flags and info
+  useEffect(() => {
     const shouldLoad = () => {
-      if (!post) return false;
-      if (!post.url) return false;
-      if (!post.title) return false;
-      if (!post.subreddit) return false;
+      if (!postLocal) return false;
+      if (!postLocal.url) return false;
+      if (!postLocal.title) return false;
+      if (!postLocal.subreddit) return false;
       return true;
     };
 
-    const initialize = async () => {
-      if (!post?.["mediaInfo"]) {
-        let m = await findMediaInfo(post, false, DOMAIN);
-        post["mediaInfo"] = m;
-      }
-      let a, b, c;
-      if (
-        post["mediaInfo"].isVideo &&
-        !(uniformMediaMode && columns > 1 && windowWidth < 640) //dont load videos on small devices with multiple columns
-      ) {
-        b = await findVideo();
-        if (b && !context.preferEmbeds) {
-          setAllowIFrame(false);
-        }
-      }
-      if (post["mediaInfo"].isIframe && !uniformMediaMode) {
-        c = await findIframe();
-      }
-      if (!b) {
-        a = await findImage();
-        if (
-          a &&
-          !context.preferEmbeds &&
-          context.autoPlayMode &&
-          fullMediaMode
-        ) {
-          setAllowIFrame(false);
-        }
-      }
-      a || b || c || post?.selftext_html ? setLoaded(true) : setLoaded(false);
-    };
-
-    const checkURL = (url) => {
+    const checkURL = (url: string | undefined) => {
       const placeholder =
         "https://www.publicdomainpictures.net/pictures/280000/velka/not-found-image-15383864787lu.jpg"; //"http://goo.gl/ijai22";
       //if (!url) return placeholder;
@@ -178,7 +211,7 @@ const Media = ({
       let src = "";
       if (!imgFull) {
         if (fullMediaMode) {
-          if (!context.highRes && windowWidth < 640) {
+          if (!mediaContext.highRes && windowWidth < 640) {
             optimize = "480";
           }
         } else if (postMode) {
@@ -198,28 +231,28 @@ const Media = ({
         }
       }
 
-      if (post?.mediaInfo?.videoInfo) {
-        src = post.mediaInfo.videoInfo?.[0]?.src;
+      if (postLocal?.mediaInfo?.videoInfo) {
+        src = postLocal.mediaInfo.videoInfo?.[0]?.src;
         if (src?.includes("DASH_1080") && !imgFull) {
           src = src.replace("DASH_1080", `DASH_${optimize}`);
         }
         if (src?.includes("DASH_720") && !imgFull) {
           src = src.replace("DASH_720", `DASH_${optimize}`);
         }
-        if (post?.mediaInfo?.videoInfo?.[1]?.src && optimize !== "720") {
-          src = post.mediaInfo.videoInfo?.[1]?.src;
+        if (postLocal?.mediaInfo?.videoInfo?.[1]?.src && optimize !== "720") {
+          src = postLocal.mediaInfo.videoInfo?.[1]?.src;
         }
         setVideoInfo({
           src: src,
-          hlsSrc: post.mediaInfo.videoInfo[0]?.hlsSrc,
-          height: post.mediaInfo.videoInfo[0].height,
-          width: post.mediaInfo.videoInfo[0].width,
-          hasAudio: post.mediaInfo.videoInfo[0]?.hasAudio,
+          hlsSrc: postLocal.mediaInfo.videoInfo[0]?.hlsSrc,
+          height: postLocal.mediaInfo.videoInfo[0].height,
+          width: postLocal.mediaInfo.videoInfo[0].width,
+          hasAudio: postLocal.mediaInfo.videoInfo[0]?.hasAudio,
         });
         setPlaceholderInfo({
-          src: checkURL(post?.thumbnail),
-          height: post.mediaInfo.videoInfo[0].height,
-          width: post.mediaInfo.videoInfo[0].width,
+          src: checkURL(postLocal?.thumbnail),
+          height: postLocal.mediaInfo.videoInfo[0].height,
+          width: postLocal.mediaInfo.videoInfo[0].width,
         });
         await findImage();
         setIsMP4(true);
@@ -229,18 +262,12 @@ const Media = ({
       return false;
     };
 
-    const stringToHTML = function (str) {
-      let parser = new DOMParser();
-      let doc = parser.parseFromString(str, "text/html");
-      return doc.body.firstElementChild;
-    };
-
     const findIframe = async () => {
-      if (post?.mediaInfo?.iFrameHTML) {
-        if (post?.mediaInfo?.iFrameHTML?.src?.includes("youtube.com")) {
+      if (postLocal?.mediaInfo?.iFrameHTML) {
+        if (postLocal?.mediaInfo?.iFrameHTML?.src?.includes("youtube.com")) {
           setisYTVid(true);
         }
-        setIFrame(post.mediaInfo.iFrameHTML);
+        setIFrame(postLocal.mediaInfo.iFrameHTML);
         setIsIFrame(true);
         return true;
       } else {
@@ -249,39 +276,39 @@ const Media = ({
     };
 
     const findImage = async () => {
-      if (post?.mediaInfo?.isTweet) {
+      if (postLocal?.mediaInfo?.isTweet) {
         setIsTweet(true);
         setIsIFrame(true);
         //return true;
       }
 
-      if (post?.mediaInfo?.isGallery) {
-        setGalleryInfo(post.mediaInfo.galleryInfo);
+      if (postLocal?.mediaInfo?.isGallery) {
+        setGalleryInfo(postLocal.mediaInfo.galleryInfo);
         setIsGallery(true);
         return true;
       } else if (
-        (post?.mediaInfo?.isVideo ||
-          post?.mediaInfo?.isImage ||
-          post?.mediaInfo?.isTweet ||
-          post?.mediaInfo?.isLink) &&
-        post?.mediaInfo?.imageInfo
+        (postLocal?.mediaInfo?.isVideo ||
+          postLocal?.mediaInfo?.isImage ||
+          postLocal?.mediaInfo?.isTweet ||
+          postLocal?.mediaInfo?.isLink) &&
+        postLocal?.mediaInfo?.imageInfo
       ) {
-        let num = findOptimalImageIndex(post.mediaInfo.imageInfo, {
+        let num = findOptimalImageIndex(postLocal.mediaInfo.imageInfo, {
           windowWidth,
-          fullRes: fullRes || context.highRes,
+          fullRes: fullRes || !!mediaContext.highRes,
           containerDims,
           context: {
             cardStyle: cardStyle,
             columns: columns,
-            saveWideUI: context.saveWideUI,
+            saveWideUI: uiContext.saveWideUI,
           },
           postMode,
         });
 
-        let imgheight = post.mediaInfo.imageInfo[num].height;
-        let imgwidth = post.mediaInfo.imageInfo[num].width;
+        let imgheight = postLocal.mediaInfo.imageInfo[num].height;
+        let imgwidth = postLocal.mediaInfo.imageInfo[num].width;
         const imgSrc = checkURL(
-          post.mediaInfo.imageInfo[num].src.replace("amp;", "")
+          postLocal.mediaInfo.imageInfo[num].src.replace("amp;", "")
         );
         setImageInfo({
           src: imgSrc,
@@ -289,9 +316,9 @@ const Media = ({
           width: imgwidth,
         });
         setPlaceholderInfo({
-          src: checkURL(post.thumbnail),
-          height: post.thumbnail_height,
-          width: post.thumbnail_width,
+          src: checkURL(postLocal.thumbnail),
+          height: postLocal.thumbnail_height,
+          width: postLocal.thumbnail_width,
         });
         setIsImage(true);
         return true;
@@ -300,10 +327,38 @@ const Media = ({
       return false;
     };
 
+    const initialize = async () => {
+      let a = false, b = false, c = false;
+      if (
+        postLocal["mediaInfo"]?.isVideo &&
+        !(uniformMediaMode && columns > 1 && windowWidth < 640) //dont load videos on small devices with multiple columns
+      ) {
+        b = await findVideo();
+        if (b && !mediaContext.preferEmbeds) {
+          setAllowIFrame(false);
+        }
+      }
+      if (postLocal["mediaInfo"]?.isIframe && !uniformMediaMode) {
+        c = await findIframe();
+      }
+      if (!b) {
+        a = await findImage();
+        if (
+          a &&
+          !mediaContext.preferEmbeds &&
+          !!mediaContext.autoPlayMode &&
+          fullMediaMode
+        ) {
+          setAllowIFrame(false);
+        }
+      }
+      a || b || c || postLocal?.selftext_html ? setLoaded(true) : setLoaded(false);
+    };
+
     if (shouldLoad()) {
       initialize();
-    } else {
     }
+
     return () => {
       setIsGallery(false);
       setIsIFrame(false);
@@ -324,7 +379,7 @@ const Media = ({
       setMediaLoaded(false);
       setLoaded(false);
     };
-  }, [post, columns, imgFull, fullRes, context.highRes]);
+  }, [postLocal, columns, imgFull, fullRes, mediaContext.highRes, windowWidth, uniformMediaMode, mediaContext.preferEmbeds, mediaContext.autoPlayMode, fullMediaMode, postMode, cardStyle, containerDims, uiContext.saveWideUI]);
 
   const [maxheightnum, setMaxheightnum] = useState<number>(() => {
     let yScale = 1;
@@ -364,7 +419,7 @@ const Media = ({
 
   const videoQuality = useMemo(
     () =>
-      (context.highRes && fullMediaMode) || fullRes
+      (!!mediaContext.highRes && fullMediaMode) || fullRes
         ? "full"
         : fullMediaMode
         ? windowWidth <= 640
@@ -386,35 +441,38 @@ const Media = ({
         ? "sd"
         : "hd",
 
-    [columns, context.highRes, windowWidth, fullMediaMode, postMode, fullRes]
+    [columns, mediaContext.highRes, windowWidth, fullMediaMode, postMode, fullRes]
   );
 
-  const mediaExternalLink = (
-    <a
-      aria-label="external link"
-      onClick={(e) => e.stopPropagation()}
-      className={
-        "flex flex-grow items-center gap-1 px-0.5 py-2 mt-auto text-xs text-th-link hover:text-th-linkHover bg-th-base  bg-opacity-50 " +
-        (postMode || columns === 1
-          ? " "
-          : " md:bg-black/0 md:group-hover:bg-black/80 ")
-      }
-      target={"_blank"}
-      rel="noreferrer"
-      href={post?.url}
-    >
-      <span
+  const mediaExternalLink = useMemo(
+    () => (
+      <a
+        aria-label="external link"
+        onClick={(e) => e.stopPropagation()}
         className={
-          "ml-2 " +
+          "flex flex-grow items-center gap-1 px-0.5 py-2 mt-auto text-xs text-th-link hover:text-th-linkHover bg-th-base  bg-opacity-50 " +
           (postMode || columns === 1
-            ? ""
-            : "md:opacity-0 group-hover:opacity-100")
+            ? " "
+            : " md:bg-black/0 md:group-hover:bg-black/80 ")
         }
+        target={"_blank"}
+        rel="noreferrer"
+        href={postLocal?.url}
       >
-        {post?.url?.split("?")?.[0]}
-      </span>
-      <BsBoxArrowInUpRight className="flex-none w-6 h-6 ml-auto mr-2 text-white group-hover:scale-110 " />
-    </a>
+        <span
+          className={
+            "ml-2 " +
+            (postMode || columns === 1
+              ? ""
+              : "md:opacity-0 group-hover:opacity-100")
+          }
+        >
+          {postLocal?.url?.split("?")?.[0]}
+        </span>
+        <BsBoxArrowInUpRight className="flex-none w-6 h-6 ml-auto mr-2 text-white group-hover:scale-110 " />
+      </a>
+    ),
+    [postLocal?.url, postMode, columns]
   );
 
   return (
@@ -479,9 +537,9 @@ const Media = ({
                     align: "center",
                   }}
                   tweetId={
-                    post.url
+                    postLocal.url
                       .split("/")
-                      [post.url.split("/").length - 1].split("?")[0]
+                      [postLocal.url.split("/").length - 1].split("?")[0]
                   }
                 />
               </div>
@@ -501,8 +559,8 @@ const Media = ({
                     ? { height: `${mediaDimensions[1]}px` }
                     : {
                         aspectRatio: `${
-                          post.mediaInfo?.dimensions[1] > 0 && !isYTVid
-                            ? `${post.mediaInfo?.dimensions[0]} / ${post.mediaInfo?.dimensions[1]}`
+                          postLocal.mediaInfo?.dimensions[1] > 0 && !isYTVid
+                            ? `${postLocal.mediaInfo?.dimensions[0]} / ${postLocal.mediaInfo?.dimensions[1]}`
                             : "16 / 9"
                         }`,
                       }
@@ -552,7 +610,7 @@ const Media = ({
             <div
               className={
                 "block relative " +
-                (post?.mediaInfo?.isTweet
+                (postLocal?.mediaInfo?.isTweet
                   ? " flex items-center justify-center overflow-hidden rounded-lg relative ring-1 ring-[#E7E5E4] "
                   : "") +
                 (uniformMediaMode ? " h-full w-full" : " ")
@@ -574,16 +632,16 @@ const Media = ({
                   <LoaderPuff />
                 </div>
               )}
-              {post?.mediaInfo?.isTweet && (
+              {postLocal?.mediaInfo?.isTweet && (
                 <div className="absolute flex w-full h-full bg-[#1A8CD8] rounded-lg  ">
                   <AiOutlineTwitter className="absolute z-20 right-2 top-2 w-10 h-10 fill-[#E7E5E4] group-hover:scale-125 transition-all " />
                 </div>
               )}
-              {post?.mediaInfo?.isLink && !fill && (
+              {postLocal?.mediaInfo?.isLink && !fill && (
                 <div
                   className={
                     "absolute bottom-0 z-20 flex items-end w-full overflow-hidden break-all " +
-                    (post?.mediaInfo?.isTweet ? " rounded-b-lg " : "")
+                    (postLocal?.mediaInfo?.isTweet ? " rounded-b-lg " : "")
                   }
                 >
                   {mediaExternalLink}
@@ -593,18 +651,18 @@ const Media = ({
                 src={imageInfo.src}
                 height={imageInfo.height}
                 width={imageInfo.width}
-                alt={post?.title}
+                alt={postLocal?.title}
                 layout={
                   fill
                     ? "responsive"
-                    : post?.mediaInfo?.isTweet
+                    : postLocal?.mediaInfo?.isTweet
                     ? "intrinsic"
                     : "fill"
                 }
                 onLoadingComplete={onLoaded}
                 lazyBoundary={imgFull ? "0px" : "2000px"}
                 objectFit={
-                  uniformMediaMode || fill || post?.mediaInfo?.isYTVid
+                  uniformMediaMode || fill || postLocal?.mediaInfo?.isYTVid
                     ? "cover"
                     : cardStyle === "card2"
                     ? "fill"
@@ -612,11 +670,11 @@ const Media = ({
                 }
                 priority={postMode}
                 placeholder={
-                  post?.mediaInfo?.imageInfo?.[0]?.url && !fullMediaMode
+                  postLocal?.mediaInfo?.imageInfo?.[0]?.url && !fullMediaMode
                     ? "blur"
                     : undefined
                 }
-                blurDataURL={post?.mediaInfo?.imageInfo?.[0]?.url}
+                blurDataURL={postLocal?.mediaInfo?.imageInfo?.[0]?.url}
                 unoptimized={true}
                 className={
                   " transition-opacity ease-in duration-300 " +
@@ -628,7 +686,7 @@ const Media = ({
           {isMP4 && (!allowIFrame || !isIFrame) ? (
             <div className="relative flex flex-col items-center flex-none">
               <VideoHandler
-                name={post?.name}
+                name={postLocal?.name}
                 columns={columns}
                 curPostName={curPostName}
                 thumbnail={placeholderInfo}
@@ -670,17 +728,38 @@ const Media = ({
       ) : (
         <></>
       )}
-      {post?.mediaInfo?.isLink &&
+      {postLocal?.mediaInfo?.isLink &&
         !isImage &&
         !isMP4 &&
         !isIFrame &&
         !isGallery && (
           <div className="overflow-hidden rounded-md">
-            <ExternalLink domain={post?.domain} url={post.url} />
+            <ExternalLink domain={postLocal?.domain} url={postLocal.url} />
           </div>
         )}
     </div>
   );
 };
 
-export default Media;
+function areEqualMedia(prev: any, next: any) {
+  const dimsEq = (prev.mediaDimensions?.[0] ?? 0) === (next.mediaDimensions?.[0] ?? 0) && (prev.mediaDimensions?.[1] ?? 0) === (next.mediaDimensions?.[1] ?? 0);
+  const contEq = (prev.containerDims?.[0] ?? 0) === (next.containerDims?.[0] ?? 0) && (prev.containerDims?.[1] ?? 0) === (next.containerDims?.[1] ?? 0);
+  const baseEq = prev.columns === next.columns && prev.postMode === next.postMode && prev.fullMediaMode === next.fullMediaMode && prev.uniformMediaMode === next.uniformMediaMode && prev.inView === next.inView && prev.fill === next.fill;
+
+  // Compare key media flags instead of relying on post object identity
+  const prevMediaInfo = prev.post?.mediaInfo;
+  const nextMediaInfo = next.post?.mediaInfo;
+  const mediaFlagsEq =
+    !!prevMediaInfo?.hasMedia === !!nextMediaInfo?.hasMedia &&
+    !!prevMediaInfo?.isVideo === !!nextMediaInfo?.isVideo &&
+    !!prevMediaInfo?.isImage === !!nextMediaInfo?.isImage &&
+    !!prevMediaInfo?.isIframe === !!nextMediaInfo?.isIframe &&
+    !!prevMediaInfo?.isTweet === !!nextMediaInfo?.isTweet &&
+    !!prevMediaInfo?.isGallery === !!nextMediaInfo?.isGallery;
+
+  const postCoreEq = prev.post?.name === next.post?.name && prev.post?.edited === next.post?.edited && prev.post?.url === next.post?.url;
+  const otherEq = prev.cardStyle === next.cardStyle && prev.hide === next.hide && prev.imgFull === next.imgFull && prev.curPostName === next.curPostName;
+  return dimsEq && contEq && baseEq && mediaFlagsEq && postCoreEq && otherEq;
+}
+
+export default React.memo(Media, areEqualMedia);

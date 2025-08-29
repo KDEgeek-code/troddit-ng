@@ -1,5 +1,5 @@
 import Document, { Html, Head, Main, NextScript } from "next/document";
-import PlausibleProvider from "next-plausible";
+
 import React from "react";
 
 class MyDocument extends Document {
@@ -30,7 +30,7 @@ class MyDocument extends Document {
             content="default"
           />
           <meta name="apple-mobile-web-app-title" content="troddit" />
-          <meta name="description" content="A web app for Reddit" />
+
           <meta name="format-detection" content="telephone=no" />
           <meta name="mobile-web-app-capable" content="yes" />
           {/* <meta
@@ -62,13 +62,41 @@ class MyDocument extends Document {
             property="og:image"
             content="https://troddit.com/icon-512.png"
           />
+
+          {/* Performance optimization links */}
+          <link
+            rel="preconnect"
+            href="https://www.reddit.com"
+            crossOrigin="anonymous"
+          />
+          <link
+            rel="preconnect"
+            href="https://oauth.reddit.com"
+            crossOrigin="anonymous"
+          />
+          <link
+            rel="preconnect"
+            href="https://plausible.io"
+            crossOrigin="anonymous"
+          />
+
+          <link rel="dns-prefetch" href="https://i.redd.it" />
+          <link rel="dns-prefetch" href="https://v.redd.it" />
+          <link rel="dns-prefetch" href="https://preview.redd.it" />
+          <link rel="dns-prefetch" href="https://external-preview.redd.it" />
+          <link rel="dns-prefetch" href="https://www.redditstatic.com" />
+          <link rel="dns-prefetch" href="https://i.imgur.com" />
+          <link rel="dns-prefetch" href="https://thumbs.gfycat.com" />
+          <link rel="dns-prefetch" href="https://giant.gfycat.com" />
+          <link rel="dns-prefetch" href="https://www.youtube.com" />
+          <link rel="dns-prefetch" href="https://i.ytimg.com" />
+          <link rel="dns-prefetch" href="https://thumbs.redgifs.com" />
+          <link rel="dns-prefetch" href="https://cdn.redgifs.com" />
         </Head>
-        <PlausibleProvider domain="troddit.com">
-          <body className=" bg-th-base text-th-text">
-            <Main />
-            <NextScript />
-          </body>
-        </PlausibleProvider>
+        <body className=" bg-th-base text-th-text">
+          <Main />
+          <NextScript />
+        </body>
       </Html>
     );
   }

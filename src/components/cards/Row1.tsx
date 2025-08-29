@@ -3,7 +3,7 @@ import Link from "next/link";
 import { BiComment } from "react-icons/bi";
 import { numToString, secondsToTime } from "../../../lib/utils";
 import Image from "next/legacy/image";
-import React, { useEffect, useMemo, useRef, useState } from "react";
+import React, { useEffect, useMemo, useRef, useState, useCallback } from "react";
 
 import { BiExit } from "react-icons/bi";
 import { ImReddit } from "react-icons/im";
@@ -86,12 +86,21 @@ const Row1 = ({
     }
   }, [post?.score]);
 
+  const onExpandToggle = useCallback(() => {
+    if (!(!hasMedia && !post?.selftext_html)) {
+      setexpand((s) => !!!s);
+    }
+  }, [hasMedia, post?.selftext_html]);
+  const onRowClick = useCallback((e: any) => { handleClick(e); }, [handleClick]);
+  const onThumbMediaClick = useCallback((e: any) => { e.stopPropagation(); e.preventDefault(); handleClick(e, { toMedia: true }); }, [handleClick]);
+  const onCommentsClick = useCallback((e: any) => { e.stopPropagation(); e.preventDefault(); handleClick(e, { toComments: true }); }, [handleClick]);
+
 
   return (
     <>
       <div
         ref={cardRef}
-        onClick={(e) => handleClick(e)}
+        onClick={onRowClick}
         className={
           (postNum === 0 ? " border-t rounded-t-md " : " ") +
           "text-sm bg-th-post2 hover:bg-th-postHover group border-l border-r border-transparent hover:border-th-borderHighlight2   "
@@ -131,11 +140,7 @@ const Row1 = ({
               }
               target={"_blank"}
               rel="noreferrer"
-              onClick={(e) => {
-                e.stopPropagation();
-                e.preventDefault();
-                handleClick(e, { toMedia: true });
-              }}
+              onClick={onThumbMediaClick}
               className="mr-1 sm:mr-0"
             >
               <div
@@ -345,8 +350,7 @@ const Row1 = ({
                   onClick={(e) => {
                     e.preventDefault();
                     e.stopPropagation();
-                    !(!hasMedia && !post?.selftext_html) &&
-                      setexpand((s) => !!!s);
+                    onExpandToggle();
                   }}
                 >
                   {hasMedia || post?.selftext_html ? (
@@ -376,11 +380,7 @@ const Row1 = ({
                 <a href={post?.permalink} onClick={(e) => e.preventDefault()}>
                   <button
                     aria-label="open comments"
-                    onClick={(e) => {
-                      e.stopPropagation();
-                      e.preventDefault();
-                      handleClick(e, { toComments: true });
-                    }}
+                    onClick={onCommentsClick}
                     className="flex flex-row items-center px-3 sm:px-2 py-1 h-8 sm:h-[26px] space-x-1 border border-transparent rounded-md  hover:border-th-borderHighlight opacity-60  "
                   >
                     <BiComment className="flex-none w-4 h-4 " />
@@ -522,4 +522,23 @@ const Row1 = ({
   );
 };
 
-export default Row1;
+function areEqualRow1(prev: any, next: any) {
+  const a = prev?.post;
+  const b = next?.post;
+  const dimsEq =
+    (prev.mediaDimensions?.[0] ?? 0) === (next.mediaDimensions?.[0] ?? 0) &&
+    (prev.mediaDimensions?.[1] ?? 0) === (next.mediaDimensions?.[1] ?? 0);
+  return (
+    a?.name === b?.name &&
+    a?.score === b?.score &&
+    a?.num_comments === b?.num_comments &&
+    dimsEq &&
+    prev.columns === next.columns &&
+    prev.hideNSFW === next.hideNSFW &&
+    prev.origCommentCount === next.origCommentCount &&
+    prev.hasMedia === next.hasMedia &&
+    prev.forceMute === next.forceMute
+  );
+}
+
+export default React.memo(Row1, areEqualRow1);

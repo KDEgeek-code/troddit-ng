@@ -1,0 +1,195 @@
+import type { NextApiRequest, NextApiResponse } from 'next';
+import { getToken } from 'next-auth/jwt';
+import { query } from '../../../server/db';
+
+// Types
+interface UserPreferences {
+  [key: string]: any;
+}
+
+interface AuthenticatedUser {
+  username: string;
+}
+
+interface ApiResponse {
+  status: string;
+  data?: UserPreferences;
+  error?: string;
+}
+
+// Authentication helper function
+async function authenticateUser(req: NextApiRequest): Promise<AuthenticatedUser> {
+  const token = await getToken({ req, secret: process.env.NEXTAUTH_SECRET });
+  
+  if (!token || !token.name) {
+    throw new Error('Unauthorized');
+  }
+  
+  // Use Reddit username only, normalized to lowercase
+  return { username: token.name.toLowerCase() };
+}
+
+// JSON validation helper function
+function validatePreferencesData(data: any): { isValid: boolean; error?: string } {
+  // Check if data exists
+  if (data === null || data === undefined) {
+    return { isValid: false, error: 'Preferences data is required' };
+  }
+  
+  // Check if data is an object (not array or primitive)
+  if (typeof data !== 'object' || Array.isArray(data)) {
+    return { isValid: false, error: 'Preferences data must be an object' };
+  }
+  
+  // Check size limit (100KB)
+  const jsonString = JSON.stringify(data);
+  const sizeInBytes = Buffer.byteLength(jsonString, 'utf8');
+  const maxSizeInBytes = 100 * 1024; // 100KB
+  
+  if (sizeInBytes > maxSizeInBytes) {
+    return { 
+      isValid: false, 
+      error: `Preferences data too large. Maximum size is ${maxSizeInBytes} bytes, got ${sizeInBytes} bytes` 
+    };
+  }
+  
+  return { isValid: true };
+}
+
+// GET handler - retrieve user preferences
+async function handleGetRequest(req: NextApiRequest, res: NextApiResponse<ApiResponse | UserPreferences>) {
+  try {
+    // Authenticate user
+    const user = await authenticateUser(req);
+    
+    // Query database for user preferences
+    const result = await query<{ data: UserPreferences }>(
+      'SELECT data FROM user_prefs WHERE user_id = $1',
+      [user.username]
+    );
+    
+    // Return preferences or empty object if none exist
+    const preferences = result.rows.length > 0 ? result.rows[0].data : {};
+    
+    // Return raw preferences directly
+    return res.status(200).json(preferences);
+    
+  } catch (error: any) {
+    console.error('Error retrieving user preferences:', error);
+    
+    if (error.message === 'Unauthorized') {
+      return res.status(401).json({
+        status: 'Unauthorized',
+        error: 'Authentication required'
+      });
+    }
+    
+    return res.status(500).json({
+      status: 'Error',
+      error: 'Internal server error'
+    });
+  }
+}
+
+// POST handler - save user preferences
+async function handlePostRequest(req: NextApiRequest, res: NextApiResponse<ApiResponse | UserPreferences>) {
+  try {
+    // Validate Content-Type
+    const contentType = req.headers['content-type'];
+    if (!contentType || !contentType.includes('application/json')) {
+      return res.status(415).json({
+        status: 'Unsupported Media Type',
+        error: 'Content-Type must be application/json'
+      });
+    }
+    
+    // Authenticate user
+    const user = await authenticateUser(req);
+    
+    // Validate request body
+    const validation = validatePreferencesData(req.body);
+    if (!validation.isValid) {
+      return res.status(400).json({
+        status: 'Bad Request',
+        error: validation.error
+      });
+    }
+    
+    // UPSERT preferences in database
+    await query(
+      `INSERT INTO user_prefs (user_id, data, updated_at) 
+       VALUES ($1, $2::jsonb, now()) 
+       ON CONFLICT (user_id) 
+       DO UPDATE SET data = $2::jsonb, updated_at = now()`,
+      [user.username, req.body]
+    );
+    
+    // Return raw preferences directly to match GET format
+    return res.status(200).json(req.body);
+    
+  } catch (error: any) {
+    console.error('Error saving user preferences:', error);
+    
+    if (error.message === 'Unauthorized') {
+      return res.status(401).json({
+        status: 'Unauthorized',
+        error: 'Authentication required'
+      });
+    }
+    
+    // Handle database constraint violations
+    if (error.code === '23505') { // unique_violation
+      return res.status(409).json({
+        status: 'Conflict',
+        error: 'Preferences update conflict'
+      });
+    }
+    
+    return res.status(500).json({
+      status: 'Error',
+      error: 'Internal server error'
+    });
+  }
+}
+
+// Next.js API route configuration
+export const config = {
+  api: {
+    bodyParser: {
+      sizeLimit: '100kb', // 100KB limit for request body
+    },
+  },
+}
+
+// Main API handler
+export default async function handler(
+  req: NextApiRequest,
+  res: NextApiResponse<ApiResponse | UserPreferences>
+) {
+  // Set security headers
+  res.setHeader('Cache-Control', 'no-store, no-cache, must-revalidate');
+  res.setHeader('Pragma', 'no-cache');
+  
+  try {
+    switch (req.method) {
+      case 'GET':
+        return await handleGetRequest(req, res);
+        
+      case 'POST':
+        return await handlePostRequest(req, res);
+        
+      default:
+        res.setHeader('Allow', ['GET', 'POST']);
+        return res.status(405).json({
+          status: 'Method Not Allowed',
+          error: `Method ${req.method} not allowed`
+        });
+    }
+  } catch (error) {
+    console.error('Unhandled error in preferences API:', error);
+    return res.status(500).json({
+      status: 'Error',
+      error: 'Internal server error'
+    });
+  }
+}

@@ -1,13 +1,13 @@
 import React, { Fragment, useState, useEffect, useMemo } from "react";
 import { FiFilter } from "react-icons/fi";
-import { useMainContext } from "../MainContext";
+import { useFilterContext } from "../contexts/FilterContext";
 import FilterModal from "./FilterModal";
 import useLocation from "../hooks/useLocation";
 import { useQueryClient } from "@tanstack/react-query";
 import { numToString } from "../../lib/utils";
 
 const FilterMenu = ({ hide = false }) => {
-  const context: any = useMainContext();
+  const filterContext = useFilterContext();
   const { key } = useLocation();
   const queryClient = useQueryClient();
   const feedData = queryClient.getQueryData(key) as any;
@@ -17,7 +17,7 @@ const FilterMenu = ({ hide = false }) => {
   const [deg, setDeg] = useState(0);
   const [degIntervalID, setDegIntervalID] = useState<any>();
   useEffect(() => {
-    if (context.filtersApplied > 0) {
+    if (filterContext.filtersApplied) {
       setActive(true);
     } else {
       setActive(false);
@@ -25,7 +25,7 @@ const FilterMenu = ({ hide = false }) => {
     return () => {
       setActive(false);
     };
-  }, [context.filtersApplied]);
+  }, [filterContext.filtersApplied]);
 
   useEffect(() => {
     if (active) {

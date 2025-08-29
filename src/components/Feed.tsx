@@ -1,8 +1,7 @@
-import React, { useEffect } from "react";
+import React, { useEffect, useMemo, useCallback, Suspense } from "react";
 
 import { useRouter } from "next/router";
 import { useMainContext } from "../MainContext";
-import LoginModal from "./LoginModal";
 import { ErrorBoundary } from "react-error-boundary";
 import useFeed from "../hooks/useFeed";
 import useRefresh from "../hooks/useRefresh";
@@ -14,10 +13,19 @@ import ToastCustom from "./toast/ToastCustom";
 import FeedMasonry from "./FeedMasonry";
 
 const Feed = ({ initialData = {} as any }) => {
-  const { mode, subreddits } = useLocation();
-  const { key, feed } = useFeed({
+  const { mode, subreddits, key } = useLocation();
+  const feedState = useFeed({
     initialPosts: initialData,
   });
+  const feed = {
+    data: feedState.data,
+    error: feedState.error,
+    hasNextPage: feedState.hasNextPage,
+    isFetching: feedState.isFetching,
+    isFetchingNextPage: feedState.isFetchingNextPage,
+    fetchNextPage: feedState.fetchNextPage,
+    refetch: feedState.refetch,
+  } as any;
   const { invalidateAll, invalidateKey, refreshCurrent, fetchingCount } =
     useRefresh();
 
@@ -56,7 +64,7 @@ const Feed = ({ initialData = {} as any }) => {
           actionLabel={"Search Instead?"}
         />
       ),
-      { position: "bottom-center", duration: Infinity, id: "not_found" }
+      { position: "bottom-center", duration: Infinity, id: "not_found" },
     );
   } else if (feed.error) {
     toast.custom(
@@ -74,7 +82,7 @@ const Feed = ({ initialData = {} as any }) => {
           <ErrMessage />
         </button>
       ),
-      { position: "bottom-center", duration: Infinity, id: "feed_error" }
+      { position: "bottom-center", duration: Infinity, id: "feed_error" },
     );
   } else {
     toast.remove("not_found");
@@ -82,7 +90,6 @@ const Feed = ({ initialData = {} as any }) => {
   }
   return (
     <>
-      <LoginModal />
       <div className="flex flex-col items-center flex-none w-screen pt-1">
         <div
           className={
@@ -147,4 +154,4 @@ function ErrorFallback({ error, resetErrorBoundary }) {
   );
 }
 
-export default Feed;
+export default React.memo(Feed);

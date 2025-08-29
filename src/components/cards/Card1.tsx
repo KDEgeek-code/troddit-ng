@@ -1,5 +1,5 @@
 import { useMainContext } from "../../MainContext";
-import React, { useState, useEffect, useRef, useMemo } from "react";
+import React, { useState, useEffect, useRef, useMemo, useCallback } from "react";
 import Link from "next/link";
 import { numToString, secondsToTime } from "../../../lib/utils";
 import { GoRepoForked } from "react-icons/go";
@@ -78,7 +78,28 @@ const Card1 = ({
     }
   }, [infoBox?.current?.clientHeight, context.mediaOnly, hasMedia, hovered]);
 
-  const handleMouseOut = (e, box, ignore) => {
+  const onCardRootClick = useCallback((e: any) => {
+    setHovered(false);
+    setShowCardMediaOverlay(false);
+    handleClick(e);
+  }, [handleClick]);
+
+  const onCommentsClick = useCallback((e: any) => {
+    e.preventDefault();
+    e.stopPropagation();
+    setHovered(false);
+    setShowCardMediaOverlay(false);
+    handleClick(e, { toComments: true });
+  }, [handleClick]);
+
+  const onMediaAnchorClick = useCallback((e: any) => {
+    e.preventDefault();
+    e.stopPropagation();
+    setShowCardMediaOverlay(false);
+    handleClick(e, { toMedia: true });
+  }, [handleClick]);
+
+  const handleMouseOut = useCallback((e, box, ignore) => {
     const sideout = () => {
       let elemBounding = box?.current?.getBoundingClientRect();
       let topDist = Math.abs(elemBounding.top - e.clientY);
@@ -106,7 +127,7 @@ const Card1 = ({
     if (side !== ignore) {
       setHovered(false);
     }
-  };
+  }, []);
 
   const [startLongPress, setStartLongPress] = useState(false);
   useEffect(() => {
@@ -138,16 +159,18 @@ const Card1 = ({
     };
   }, [startLongPress, showCardMediaOverlay]);
 
-  const linkMode =
-    context?.compactLinkPics &&
-    !context.mediaOnly &&
-    post?.mediaInfo?.isLink &&
-    !post?.mediaInfo?.isTweet &&
-    //post?.mediaInfo?.imageInfo?.[0]?.src &&
-    !(
-      post?.mediaInfo?.isIframe &&
-      (context.embedsEverywhere || (columns === 1 && !context.disableEmbeds))
-    );
+  const linkMode = useMemo(
+    () =>
+      context?.compactLinkPics &&
+      !context.mediaOnly &&
+      post?.mediaInfo?.isLink &&
+      !post?.mediaInfo?.isTweet &&
+      !(
+        post?.mediaInfo?.isIframe &&
+        (context.embedsEverywhere || (columns === 1 && !context.disableEmbeds))
+      ),
+    [context?.compactLinkPics, context.mediaOnly, post?.mediaInfo, columns, context.embedsEverywhere, context.disableEmbeds]
+  );
 
   return (
     <>
@@ -166,11 +189,7 @@ const Card1 = ({
             ? " hover:scale-101 group hover:transition-transform transition-transform "
             : "")
         }
-        onClick={(e) => {
-          setHovered(false);
-          setShowCardMediaOverlay(false);
-          handleClick(e);
-        }}
+        onClick={onCardRootClick}
       >
         <div
           className={
@@ -596,12 +615,7 @@ const Card1 = ({
                   <a
                     aria-label={post?.title}
                     href={post?.permalink}
-                    onClick={(e) => {
-                      e.preventDefault();
-                      e.stopPropagation();
-                      setShowCardMediaOverlay(false);
-                      handleClick(e, { toMedia: true });
-                    }}
+                    onClick={onMediaAnchorClick}
                     onMouseDown={(e) => {
                       e.preventDefault();
                     }}
@@ -655,13 +669,7 @@ const Card1 = ({
               <div className="flex flex-row items-center justify-end gap-2 ml-auto -mr-2">
                 <a
                   href={post?.permalink}
-                  onClick={(e) => {
-                    e.preventDefault();
-                    e.stopPropagation();
-                    setHovered(false);
-                    setShowCardMediaOverlay(false);
-                    handleClick(e, { toComments: true });
-                  }}
+                  onClick={onCommentsClick}
                 >
                   <span
                     className={
@@ -875,4 +883,28 @@ const Card1 = ({
   );
 };
 
-export default Card1;
+// wrapped below
+
+function areEqualCard1(prev: any, next: any) {
+  const a = prev?.post;
+  const b = next?.post;
+  const dimsEq =
+    (prev.mediaDimensions?.[0] ?? 0) === (next.mediaDimensions?.[0] ?? 0) &&
+    (prev.mediaDimensions?.[1] ?? 0) === (next.mediaDimensions?.[1] ?? 0);
+  return (
+    a?.name === b?.name &&
+    a?.score === b?.score &&
+    a?.num_comments === b?.num_comments &&
+    dimsEq &&
+    prev.columns === next.columns &&
+    prev.inView === next.inView &&
+    prev.hideNSFW === next.hideNSFW &&
+    prev.uniformMediaMode === next.uniformMediaMode &&
+    prev.origCommentCount === next.origCommentCount &&
+    prev.hasMedia === next.hasMedia &&
+    prev.forceMute === next.forceMute &&
+    ((prev.read?.numComments ?? undefined) === (next.read?.numComments ?? undefined))
+  );
+}
+
+export default React.memo(Card1, areEqualCard1);

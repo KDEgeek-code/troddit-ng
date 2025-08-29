@@ -21,7 +21,9 @@ import { findMediaInfo } from "../../../lib/utils";
 import { getToken } from "next-auth/jwt";
 import { getSession } from "next-auth/react";
 import { useTAuth } from "../../PremiumAuthContext";
-const SubredditPage = ({ query, metaTags, post, postData }) => {
+const SubredditPage = () => {
+  const router = useRouter();
+  const query = router.query;
   const user = useTAuth();
   const [subsArray, setSubsArray] = useState<string[]>([]);
   const [wikiContent, setWikiContent] = useState("");
@@ -30,31 +32,43 @@ const SubredditPage = ({ query, metaTags, post, postData }) => {
   const [postThread, setPostThread] = useState(false);
   const [withCommentContext, setWithCommentContext] = useState(false);
   useEffect(() => {
-    const getWiki = async (wikiquery: {wikiquery:string[];isPremium:boolean}) => {
+    const getWiki = async (wikiquery: {
+      wikiquery: string[];
+      isPremium: boolean;
+    }) => {
       const data = await getWikiContent(wikiquery);
       setWikiContent(data?.data?.content_html ?? "nothing found");
     };
 
     if (user.isLoaded) {
+      const first = Array.isArray(query.slug)
+        ? query.slug[0]
+        : (query.slug as string | undefined);
       setSubsArray(
-        query?.slug?.[0]
+        (first ?? "")
           .split(" ")
           .join("+")
           .split(",")
           .join("+")
           .split("%20")
           .join("+")
-          .split("+")
+          .split("+"),
       );
-      if (query?.slug?.[1]?.toUpperCase() === "COMMENTS") {
+      if (
+        Array.isArray(query.slug) &&
+        query.slug?.[1]?.toUpperCase() === "COMMENTS"
+      ) {
         setPostThread(true);
         query?.context && setWithCommentContext(true);
-        query?.slug?.[4] && setCommentThread(true);
-      } else if (query?.slug?.[1]?.toUpperCase() === "WIKI") {
+        Array.isArray(query.slug) && query.slug?.[4] && setCommentThread(true);
+      } else if (
+        Array.isArray(query.slug) &&
+        query.slug?.[1]?.toUpperCase() === "WIKI"
+      ) {
         setWikiMode(true);
-        let wikiquery = query.slug;
+        const wikiquery = Array.isArray(query.slug) ? [...query.slug] : [];
         if (!wikiquery?.[2]) wikiquery[2] = "index";
-        getWiki({wikiquery, isPremium: user.premium?.isPremium ?? false});
+        getWiki({ wikiquery, isPremium: user.premium?.isPremium ?? false });
       }
     }
 
@@ -79,35 +93,6 @@ const SubredditPage = ({ query, metaTags, post, postData }) => {
         <title>
           {query?.slug?.[0] ? `troddit · ${query?.slug?.[0]}` : "troddit"}
         </title>
-        {metaTags?.ogDescription && (
-          <meta name="description" content={metaTags.ogDescription}></meta>
-        )}
-        {metaTags?.ogSiteName && (
-          <>
-            <meta property="og:site_name" content={metaTags?.ogSiteName} />
-            {metaTags?.ogDescription && (
-              <meta
-                property="og:description"
-                content={metaTags?.ogDescription}
-              />
-            )}
-            {metaTags?.ogTitle && (
-              <meta property="og:title" content={metaTags?.ogTitle} />
-            )}
-            {metaTags?.ogImage && (
-              <meta property="og:image" content={metaTags?.ogImage} />
-            )}
-            {metaTags?.ogHeight && (
-              <meta property="og:image:height" content={metaTags?.ogHeight} />
-            )}
-            {metaTags?.ogWidth && (
-              <meta property="og:image:width" content={metaTags?.ogWidth} />
-            )}
-            {metaTags?.ogType && (
-              <meta property="og:type" content={metaTags?.ogType} />
-            )}
-          </>
-        )}
       </Head>
       <main>
         {subsArray?.[0]?.toUpperCase() !== "ALL" &&
@@ -134,30 +119,33 @@ const SubredditPage = ({ query, metaTags, post, postData }) => {
           <div className="mt-10">
             <LoginModal />
             <PostModal
-              permalink={"/r/" + query?.slug.join("/")}
-              returnRoute={query?.slug?.[0] ? `/r/${query?.slug[0]}` : "/"}
+              permalink={
+                "/r/" +
+                (Array.isArray(query.slug)
+                  ? query.slug.join("/")
+                  : String(query.slug ?? ""))
+              }
+              returnRoute={
+                Array.isArray(query.slug) && query.slug[0]
+                  ? `/r/${query.slug[0]}`
+                  : "/"
+              }
               setSelect={setCommentThread}
               direct={true}
               commentMode={commentThread}
               withcontext={withCommentContext}
-              postData={post}
               postNum={0}
               curKey={undefined}
             />
           </div>
         ) : (
-          <Feed initialData={postData} />
+          <Feed />
         )}
       </main>
     </div>
   );
 };
 
-SubredditPage.getInitialProps = async (d) => {
-  const { query, req, res } = d;
-  // let subreddits = query?.slug?.[0];
-  // subreddits = query?.slug?.[0]?.split(" ")?.join("+")?.split("%2b")?.join("+");
-  return { query };
-};
+// getInitialProps removed; using useRouter for query
 
 export default SubredditPage;

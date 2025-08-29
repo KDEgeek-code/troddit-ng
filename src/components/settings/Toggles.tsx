@@ -16,6 +16,8 @@ import {
 } from "react-icons/bs";
 
 import { useMainContext } from "../../MainContext";
+import { useUIContext } from "../../contexts/UIContext";
+import { useMediaContext } from "../../contexts/MediaContext";
 import ThemeSelector from "./ThemeSelector";
 
 interface ToggleProps {
@@ -71,7 +73,29 @@ const Toggles = ({
 }: ToggleProps) => {
   const { theme, setTheme, resolvedTheme } = useTheme();
   const [mounted, setMounted] = useState(false);
-  const context: any = useMainContext();
+  const mainContext = useMainContext();
+  const uiContext = useUIContext();
+  const mediaContext = useMediaContext();
+  
+  // Helper function to get the appropriate context based on setting
+  const getContextForSetting = (setting: string) => {
+    // UI settings
+    if (['wideUI', 'syncWideUI', 'postWideUI', 'compactLinkPics', 'uniformHeights', 
+         'autoHideNav', 'preferSideBySide', 'disableSideBySide', 'dimRead', 
+         'showUserIcons', 'showAwardings', 'showFlairs', 'showUserFlairs', 
+         'expandedSubPane'].includes(setting)) {
+      return uiContext;
+    }
+    // Media settings
+    if (['nsfw', 'autoplay', 'hoverplay', 'audioOnHover', 'disableEmbeds', 
+         'preferEmbeds', 'embedsEverywhere', 'expandImages'].includes(setting)) {
+      return mediaContext;
+    }
+    // App-level settings remain in MainContext
+    return mainContext;
+  };
+  
+  const context = getContextForSetting(setting);
 
   const [onHandleColor, setOnHandleColor] = useState<string>();
   const [offHandleColor, setOffHandleColor] = useState<string>();
@@ -84,9 +108,9 @@ const Toggles = ({
   const [title, setTitle] = useState("");
   const [switchSubtext, setSwitchSubtext] = useState(subtext);
   const disabled =
-    (setting == "postWideUI" && context.syncWideUI == true) ||
+    (setting == "postWideUI" && uiContext.syncWideUI == true) ||
     (setting == "collapseChildrenOnly" &&
-      context.defaultCollapseChildren === true) ||
+      mainContext.defaultCollapseChildren === true) ||
     (setting == "theme" &&
       resolvedTheme !== "dark" &&
       resolvedTheme !== "light");
@@ -146,7 +170,7 @@ const Toggles = ({
         !label && setSwitchLabel("NSFW");
         !subtext &&
           setSwitchSubtext(
-            context.nsfw
+            mediaContext.nsfw
               ? "18+ posts shown as normal"
               : "18+ posts are blurred and search results hidden"
           );
@@ -182,7 +206,7 @@ const Toggles = ({
         setUncheckedIcon(<BsVolumeMute />);
         break;
       case "wideUI":
-        setIsChecked(context.saveWideUI === true);
+        setIsChecked(uiContext.saveWideUI === true);
         !label && setSwitchLabel("Wide UI");
         !subtext &&
           setSwitchSubtext(
@@ -204,7 +228,7 @@ const Toggles = ({
         !subtext &&
           setSwitchSubtext(
             `${
-              context.syncWideUI
+              uiContext.syncWideUI
                 ? "'Sync Width' must be disabled to toggle this. "
                 : "Narrow or wide post UI. Comments will not be displayed to the side with narrow width."
             }`
@@ -312,7 +336,7 @@ const Toggles = ({
             );
           break;
       case "userPostType":
-        setIsChecked(context?.[setting] === "links");
+        setIsChecked(mainContext?.[setting] === "links");
         setCheckedIcon(<BiDetail />);
         setUncheckedIcon(<BiComment />);
         !label && setSwitchLabel("Post Type");
@@ -389,7 +413,7 @@ const Toggles = ({
     ) {
       setIsChecked(context[setting] === true);
     }
-  }, [resolvedTheme, context?.[setting], context.syncWideUI]);
+  }, [resolvedTheme, context?.[setting], uiContext.syncWideUI, mediaContext.nsfw, mainContext.userPostType, uiContext.saveWideUI]);
 
   const handleChange = () => {
     switch (setting) {
@@ -401,106 +425,106 @@ const Toggles = ({
         );
         break;
       case "nsfw":
-        context.toggleNSFW();
+        mediaContext.toggleNSFW();
         break;
       case "autoplay":
-        context.toggleAutoplay();
+        mediaContext.toggleAutoplay();
         break;
       case "hoverplay":
-        context.toggleHoverPlay();
+        mediaContext.toggleHoverPlay();
         break;
       case "audioOnHover":
-        context.toggleAudioOnHover();
+        mediaContext.toggleAudioOnHover();
         break;
       case "compactLinkPics":
-        context.toggleCompactLinkPics();
+        uiContext.toggleCompactLinkPics();
         break;
       case "wideUI":
-        context.toggleWideUI();
+        uiContext.toggleWideUI();
         break;
       case "syncWideUI":
-        context.toggleSyncWideUI();
+        uiContext.toggleSyncWideUI();
         break;
       case "postWideUI":
-        context.togglePostWideUI();
+        uiContext.togglePostWideUI();
         break;
       case "ribbonCollapseOnly":
-        context.toggleRibbonCollapseOnly();
+        mainContext.toggleRibbonCollapseOnly();
         break;
       case "collapseChildrenOnly":
-        context.toggleCollapseChildrenOnly();
+        mainContext.toggleCollapseChildrenOnly();
         break;
       case "defaultCollapseChildren":
-        context.toggleDefaultCollapseChildren();
+        mainContext.toggleDefaultCollapseChildren();
         break;
       case "showUserIcons":
-        context.toggleShowUserIcons();
+        uiContext.toggleShowUserIcons();
         break;
       case "showAwardings":
-        context.toggleShowAwardings();
+        uiContext.toggleShowAwardings();
         break;
       case "showFlairs":
-        context.toggleShowFlairs();
+        uiContext.toggleShowFlairs();
         break;
       case "showUserFlairs":
-        context.toggleShowUserFlairs();
+        uiContext.toggleShowUserFlairs();
         break;
       case "expandedSubPane":
-        context.toggleExpandedSubPane();
+        uiContext.toggleExpandedSubPane();
         break;
       case "infiniteLoading":
-        context.toggleInfiniteLoading();
+        mainContext.toggleInfiniteLoading();
         break;
       case "dimRead":
-        context.toggleDimRead();
+        uiContext.toggleDimRead();
         break;
       case "autoRead":
-        context.toggleAutoRead();
+        mainContext.toggleAutoRead();
         break;
       case "autoSeen":
-        context.toggleAutoSeen();
+        mainContext.toggleAutoSeen();
         break;
       case "disableEmbeds":
-        context.toggleDisableEmbeds();
+        mediaContext.toggleDisableEmbeds();
         break;
       case "preferEmbeds":
-        context.togglePreferEmbeds();
+        mediaContext.togglePreferEmbeds();
         break;
       case "embedsEverywhere":
-        context.toggleEmbedsEverywhere();
+        mediaContext.toggleEmbedsEverywhere();
         break;
       case "expandImages":
-        context.toggleExpandImages();
+        mediaContext.toggleExpandImages();
         break;
       case "userPostType":
-        context.toggleUserPostType();
+        mainContext.toggleUserPostType();
         break;
       case "autoRefreshFeed":
-        context.setAutoRefreshFeed((f) => !f);
+        mainContext.setAutoRefreshFeed((f) => !f);
         break;
       case "askToUpdateFeed":
-        context.setAskToUpdateFeed((f) => !f);
+        mainContext.setAskToUpdateFeed((f) => !f);
         break;
       case "refreshOnFocus":
-        context.setRefreshOnFocus((f) => !f);
+        mainContext.setRefreshOnFocus((f) => !f);
         break;
       case "autoRefreshComments":
-        context.setAutoRefreshComments((f) => !f);
+        mainContext.setAutoRefreshComments((f) => !f);
         break;
       case "uniformHeights":
-        context.setUniformHeights((f) => !f);
+        uiContext.setUniformHeights((f) => !f);
         break;
       case "autoHideNav":
-        context.toggleAutoHideNav();
+        uiContext.toggleAutoHideNav();
         break;
       case "preferSideBySide":
-        context.togglePreferSideBySide();
+        uiContext.togglePreferSideBySide();
         break;
       case "disableSideBySide":
-        context.toggleDisableSideBySide();
+        uiContext.toggleDisableSideBySide();
         break;
       case "autoCollapseComments":
-        context.toggleAutoCollapseComments();
+        mainContext.toggleAutoCollapseComments();
         break;
       default:
         break;

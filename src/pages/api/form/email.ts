@@ -1,7 +1,7 @@
 // import { , NextResponse } from "next/server";
 import { createClient } from "@supabase/supabase-js";
 const ACCEPT_EMAILS = JSON.parse(
-  process?.env?.NEXT_PUBLIC_ACCEPT_EMAILS ?? "false"
+  process?.env?.NEXT_PUBLIC_ACCEPT_EMAILS ?? "false",
 );
 const SUPABASE_URL = process.env.SUPABASE_URL;
 const SUPABASE_SERVICE_ROLE_KEY = process.env.SUPABASE_SERVICE_ROLE_KEY;
@@ -36,13 +36,11 @@ export default async function handler(req, res) {
 
     if (error && error.code !== "23505") {
       console.error("Err?", error);
-      return new res.status(500).json({ data: "something went wrong" });
+      return res.status(500).json({ data: "something went wrong" });
     }
-    return res
-      .status(200)
-      .json({
-        data: `email submitted, you will be contacted when sign ups are available`,
-      });
+    return res.status(200).json({
+      data: `email submitted, you will be contacted when sign ups are available`,
+    });
   }
   return res.status(401).json({ data: "not accepting emails" });
 }

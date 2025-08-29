@@ -1,4 +1,4 @@
-import React, { useEffect, useState, useRef, useCallback } from "react";
+import React, { useEffect, useState, useRef, useCallback, useMemo } from "react";
 import { useRouter } from "next/dist/client/router";
 import { useSession } from "next-auth/react";
 import Card1 from "./cards/Card1";
@@ -7,6 +7,7 @@ import Row1 from "./cards/Row1";
 import CommentCard from "./cards/CommentCard";
 import { useRead } from "../hooks/useRead";
 import useCardHeightTrigger from "../hooks/useCardHeightTrigger";
+import { PostProps } from "../../types";
 
 const Post = ({
   post,
@@ -21,6 +22,15 @@ const Post = ({
   inView = true,
   handleSizeChange,
   initHeight = 0,
+}: PostProps & {
+  postClick?: (name: string, postNum: number) => void;
+  uniformMediaMode?: boolean;
+  mediaDimensions?: [number, number];
+  showNSFW?: boolean;
+  cardStyle?: string;
+  inView?: boolean;
+  handleSizeChange?: (name: string, height: number) => void;
+  initHeight?: number;
 }) => {
   const { data: session, status } = useSession();
   const router = useRouter();
@@ -45,7 +55,7 @@ const Post = ({
     };
   }, [showNSFW, post]);
 
-  const handleClick = (e, nav: { toComments?: boolean; toMedia?: boolean }) => {
+  const handleClick = useCallback((e: React.MouseEvent, nav: { toComments?: boolean; toMedia?: boolean }) => {
     e.stopPropagation();
     if (!e.ctrlKey && !e.metaKey) {
       openPost(post, postNum, nav, router.asPath);
@@ -92,7 +102,15 @@ const Post = ({
     } else {
       window.open(`${post?.data.permalink}`, "_blank");
     }
-  };
+  }, [openPost, post, postNum, router, session?.user?.name]);
+
+  const onPostClick = useCallback(() => {
+    postClick && postClick(post?.data?.name, postNum);
+  }, [postClick, post?.data?.name, postNum]);
+
+  const isComment = useMemo(() => post?.kind === "t1", [post?.kind]);
+
+  const memoMediaDims = useMemo(() => mediaDimensions, [mediaDimensions?.[0], mediaDimensions?.[1]]);
 
   useEffect(() => {
     if (read) {
@@ -106,13 +124,8 @@ const Post = ({
     <div ref={postCardRef} className={""}>
 
       {/* Click wrapper */}
-      <div
-        className={"select-none"}
-        onClickCapture={() => {
-          postClick(post?.data?.name, postNum);
-        }}
-      >
-        {post?.kind === "t1" ? (
+      <div className={"select-none"} onClickCapture={onPostClick}>
+        {isComment ? (
           <CommentCard
             data={post?.data}
             postNum={postNum}
@@ -129,7 +142,7 @@ const Post = ({
             read={read}
             handleClick={handleClick}
             origCommentCount={origCommentCount}
-            mediaDimensions={mediaDimensions}
+            mediaDimensions={memoMediaDims}
             checkCardHeight={checkCardHeight}
             initHeight={initHeight}
             // newPost={post?.newPost}
@@ -146,7 +159,7 @@ const Post = ({
             read={read}
             handleClick={handleClick}
             origCommentCount={origCommentCount}
-            mediaDimensions={mediaDimensions}
+            mediaDimensions={memoMediaDims}
             checkCardHeight={checkCardHeight}
             // newPost={post?.newPost}
 
@@ -164,7 +177,7 @@ const Post = ({
             handleClick={handleClick}
             origCommentCount={origCommentCount}
             uniformMediaMode={uniformMediaMode}
-            mediaDimensions={mediaDimensions}
+            mediaDimensions={memoMediaDims}
             checkCardHeight={checkCardHeight}
             // newPost={post?.newPost}
 
@@ -175,4 +188,29 @@ const Post = ({
   );
 };
 
-export default Post;
+function areEqualPost(prev: any, next: any) {
+  const a = prev?.post?.data;
+  const b = next?.post?.data;
+  const mediaEq =
+    (prev.mediaDimensions?.[0] ?? 0) === (next.mediaDimensions?.[0] ?? 0) &&
+    (prev.mediaDimensions?.[1] ?? 0) === (next.mediaDimensions?.[1] ?? 0);
+  const baseEq =
+    prev.cardStyle === next.cardStyle &&
+    prev.columns === next.columns &&
+    prev.inView === next.inView &&
+    prev.postNum === next.postNum &&
+    prev.showNSFW === next.showNSFW &&
+    prev.uniformMediaMode === next.uniformMediaMode;
+  const postCoreEq =
+    a?.name === b?.name &&
+    a?.score === b?.score &&
+    a?.num_comments === b?.num_comments &&
+    a?.likes === b?.likes &&
+    a?.edited === b?.edited;
+  const mediaInfoEq =
+    !!a?.mediaInfo?.hasMedia === !!b?.mediaInfo?.hasMedia;
+
+  return mediaEq && baseEq && postCoreEq && mediaInfoEq;
+}
+
+export default React.memo(Post, areEqualPost);

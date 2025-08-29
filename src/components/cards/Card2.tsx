@@ -54,21 +54,35 @@ const Card2 = ({
       return z.toString() + "k";
     }
   }, [post?.score]);
-  const linkMode =
-    context?.compactLinkPics &&
-    post?.mediaInfo?.isLink &&
-    !post?.mediaInfo?.isTweet &&
-    // post?.mediaInfo?.imageInfo?.[0]?.url &&
-    !(
-      post?.mediaInfo?.isIframe &&
-      (context.embedsEverywhere || (columns === 1 && !context.disableEmbeds))
-    );
+  const linkMode = useMemo(
+    () =>
+      context?.compactLinkPics &&
+      post?.mediaInfo?.isLink &&
+      !post?.mediaInfo?.isTweet &&
+      !(
+        post?.mediaInfo?.isIframe &&
+        (context.embedsEverywhere || (columns === 1 && !context.disableEmbeds))
+      ),
+    [context?.compactLinkPics, post?.mediaInfo, context.embedsEverywhere, columns, context.disableEmbeds]
+  );
   useEffect(() => {
     setMounted(true); 
   }, [])
   
+  const onRootClick = React.useCallback((e: any) => handleClick(e), [handleClick]);
+  const onMediaAnchorClick = React.useCallback((e: any) => {
+    e.preventDefault();
+    e.stopPropagation();
+    handleClick(e, { toMedia: true });
+  }, [handleClick]);
+  const onCommentsClick = React.useCallback((e: any) => {
+    e.preventDefault();
+    e.stopPropagation();
+    handleClick(e, { toComments: true });
+  }, [handleClick]);
+
   return (
-    <div onClick={(e) => handleClick(e)}>
+    <div onClick={onRootClick}>
       <div
         className={
           " text-sm bg-th-post hover:bg-th-postHover group  hover:shadow-2xl transition-colors ring-1 hover:cursor-pointer ring-th-border2 hover:ring-th-borderHighlight2  shadow-md " +
@@ -100,11 +114,7 @@ const Card2 = ({
               ) : (
                 <a
                   href={post?.permalink}
-                  onClick={(e) => {
-                    e.preventDefault();
-                    e.stopPropagation();
-                    handleClick(e, { toMedia: true });
-                  }}
+                  onClick={onMediaAnchorClick}
                   onMouseDown={(e) => e.preventDefault()}
                   className={"relative block"}
                 >
@@ -373,11 +383,7 @@ const Card2 = ({
                         : ""
                     }
                     href={post?.permalink}
-                    onClick={(e) => {
-                      e.preventDefault();
-                      e.stopPropagation();
-                      handleClick(e, { toComments: true });
-                    }}
+                    onClick={onCommentsClick}
                   >
                     <h2
                       className={
@@ -419,4 +425,24 @@ const Card2 = ({
   );
 };
 
-export default Card2;
+function areEqualCard2(prev: any, next: any) {
+  const a = prev?.post;
+  const b = next?.post;
+  const dimsEq =
+    (prev.mediaDimensions?.[0] ?? 0) === (next.mediaDimensions?.[0] ?? 0) &&
+    (prev.mediaDimensions?.[1] ?? 0) === (next.mediaDimensions?.[1] ?? 0);
+  return (
+    a?.name === b?.name &&
+    a?.score === b?.score &&
+    a?.num_comments === b?.num_comments &&
+    dimsEq &&
+    prev.columns === next.columns &&
+    prev.inView === next.inView &&
+    prev.hideNSFW === next.hideNSFW &&
+    prev.origCommentCount === next.origCommentCount &&
+    prev.hasMedia === next.hasMedia &&
+    prev.forceMute === next.forceMute
+  );
+}
+
+export default React.memo(Card2, areEqualCard2);

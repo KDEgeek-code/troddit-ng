@@ -20,20 +20,25 @@ import toast from "react-hot-toast";
 
 import ToastCustom from "./components/toast/ToastCustom";
 import { useTAuth } from "./PremiumAuthContext";
+import { SubsContextValue, RedditSubreddit } from "../types";
 
-export const SubsContext: any = React.createContext({});
-export const useSubsContext = () => {
-  return useContext(SubsContext);
+export const SubsContext = React.createContext<SubsContextValue | undefined>(undefined);
+export const useSubsContext = (): SubsContextValue => {
+  const context = useContext(SubsContext);
+  if (!context) {
+    throw new Error('useSubsContext must be used within MySubsProvider');
+  }
+  return context;
 };
 
-export const MySubsProvider = ({ children }) => {
+export const MySubsProvider = ({ children }: { children: React.ReactNode }) => {
   const router = useRouter();
   const user = useTAuth();
-  const context: any = useMainContext();
-  const [mySubs, setMySubs] = useState([]);
-  const [myFollowing, setMyFollowing] = useState([]);
-  const [myLocalSubs, setMyLocalSubs] = useState([]);
-  const [myMultis, setMyMultis] = useState([]);
+  const context = useMainContext();
+  const [mySubs, setMySubs] = useState<RedditSubreddit[]>([]);
+  const [myFollowing, setMyFollowing] = useState<RedditSubreddit[]>([]);
+  const [myLocalSubs, setMyLocalSubs] = useState<string[]>([]);
+  const [myMultis, setMyMultis] = useState<any[]>([]);
   const { data: session, status } = useSession();
   const loading = status === "loading";
   const [loadedMultis, setloadedMultis] = useState(false);

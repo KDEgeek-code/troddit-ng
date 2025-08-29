@@ -1,7 +1,8 @@
 import { useSession } from "next-auth/react";
-import React, { useEffect, useState } from "react";
+import React, { useEffect, useState, useCallback, useMemo } from "react";
 import { useMainContext } from "../MainContext";
 import ChildComments from "./ChildComments";
+import { CommentsProps, RedditComment, UseThreadReturn } from "../../types";
 
 const Comments = ({
   comments,
@@ -15,32 +16,46 @@ const Comments = ({
   locked = false,
   scoreHideMins = 0,
   setCommentsReady,
+}: CommentsProps & {
+  readTime?: Date;
+  op?: string;
+  portraitMode?: boolean;
+  thread?: Pick<UseThreadReturn, 'isFetching' | 'fetchNextPage'>;
+  locked?: boolean;
+  scoreHideMins?: number;
+  setCommentsReady?: (ready: boolean) => void;
 }) => {
   const { data: session, status } = useSession();
-  const context: any = useMainContext();
+  const context = useMainContext();
   sort ??= context.defaultSortComments;
 
-  const [commentsData, setCommentsData] = useState<any[]>();
+  const [commentsData, setCommentsData] = useState<RedditComment[] | undefined>(comments);
   useEffect(() => {
     comments && setCommentsData(comments);
   }, [comments]);
+  
   useEffect(() => {
-    commentsData && setCommentsReady(true);
-  }, [commentsData]);
+    if (commentsData && setCommentsReady) {
+      setCommentsReady(true);
+    }
+  }, [commentsData, setCommentsReady]);
 
-  const loadChildComments = async () => {
+  const loadChildComments = useCallback(async () => {
     if (session) {
+      if (!thread) return;
       thread.fetchNextPage();
     } else {
       context.toggleLoginModal();
     }
-  };
+  }, [session, thread, context]);
+
+  const renderedComments = useMemo(() => commentsData, [commentsData]);
 
   return (
     <div className="">
-      {commentsData?.map((comment, i) => (
+      {renderedComments?.map((comment, i) => (
         <div key={`${i}_${comment?.data?.id}`} className="py-1 ">
-          {comment?.kind === "more" ? (
+          {comment?.kind === "more" && thread ? (
             <button
               aria-label="load more"
               className={
@@ -76,4 +91,11 @@ const Comments = ({
   );
 };
 
-export default Comments;
+function areEqualComments(prev: any, next: any) {
+  const sameArray = prev.comments === next.comments; // rely on new arrays to trigger
+  const base = prev.sort === next.sort && prev.depth === next.depth && prev.op === next.op && prev.locked === next.locked && prev.scoreHideMins === next.scoreHideMins && prev.thread?.isFetching === next.thread?.isFetching;
+  const threadEq = prev.thread?.fetchNextPage === next.thread?.fetchNextPage; // compare thread ref identity
+  return sameArray && base && threadEq;
+}
+
+export default React.memo(Comments, areEqualComments);

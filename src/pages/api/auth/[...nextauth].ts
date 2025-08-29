@@ -18,7 +18,7 @@ function b2a(a) {
     n = [] as string[];
   if (!a) return a;
   do
-    (c = a.charCodeAt(k++)),
+    ((c = a.charCodeAt(k++)),
       (d = a.charCodeAt(k++)),
       (e = a.charCodeAt(k++)),
       (j = (c << 16) | (d << 8) | e),
@@ -26,7 +26,7 @@ function b2a(a) {
       (g = 63 & (j >> 12)),
       (h = 63 & (j >> 6)),
       (i = 63 & j),
-      (n[l++] = b.charAt(f) + b.charAt(g) + b.charAt(h) + b.charAt(i));
+      (n[l++] = b.charAt(f) + b.charAt(g) + b.charAt(h) + b.charAt(i)));
   while (k < a.length);
   return (
     (m = n.join("")),
@@ -104,8 +104,8 @@ export const authOptions: NextAuthOptions = {
       clientSecret: process.env.CLIENT_SECRET,
       type: "oauth",
       version: "2.0",
-      token: " https://www.reddit.com/api/v1/access_token",
-      accessTokenUrl: " https://www.reddit.com/api/v1/access_token",
+      token: "https://www.reddit.com/api/v1/access_token",
+      accessTokenUrl: "https://www.reddit.com/api/v1/access_token",
       authorization: `https://www.reddit.com/api/v1/authorize?response_type=code&duration=permanent&scope=${redditScope}`,
       userinfo: "https://oauth.reddit.com/api/v1/me",
       profile: (profile) => {

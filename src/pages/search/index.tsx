@@ -1,11 +1,12 @@
 import Head from "next/head";
-import { useEffect } from "react";
-import Feed from "../../components/Feed";
-import NavBar from "../../components/NavBar";
+import { useRouter } from "next/router";
+
 import SearchPage from "../../components/SearchPage";
 import React from "react";
 
-const Search = ({ query }) => {
+const Search = () => {
+  const router = useRouter();
+  const query = router.query;
   return (
     <div>
       <Head>
@@ -13,13 +14,10 @@ const Search = ({ query }) => {
       </Head>
 
       <main>
-          <SearchPage query={query} />
+        <SearchPage query={query} />
       </main>
     </div>
   );
-};
-Search.getInitialProps = ({ query }) => {
-  return { query };
 };
 
 export default Search;

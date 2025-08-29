@@ -1,22 +1,32 @@
-import { useEffect, useState } from "react";
+import { useEffect, useState, useCallback } from "react";
 import toast from "react-hot-toast";
 import ToastCustom from "../components/toast/ToastCustom";
-import { subredditFilters, useMainContext } from "../MainContext";
+import { subredditFilters } from "../MainContext";
+import { useFilterContext } from "../contexts/FilterContext";
 import { userFilters } from "../MainContext";
-const useFilterSubs = () => {
-  const context: any = useMainContext(); 
-  const {updateFilters, setUpdateFilters} = context; 
-  const [filteredSubs, setFilteredSubs] = useState([]);
-  const [filteredUsers, setFilteredUsers] = useState([]);
+import { UseFilterSubsReturn } from "../../types";
+
+const useFilterSubs = (): UseFilterSubsReturn => {
+  const filterContext = useFilterContext(); 
+  const {updateFilters, setUpdateFilters} = filterContext; 
+  const [filteredSubs, setFilteredSubs] = useState<string[]>([]);
+  const [filteredUsers, setFilteredUsers] = useState<string[]>([]);
 
   useEffect(() => {
     const loadFilters = async () => {
-      subredditFilters.iterate((value, key, iterationNumber) => {
-        setFilteredSubs((f) => [...f, key]);
+      const subs: string[] = [];
+      const users: string[] = [];
+      
+      await subredditFilters.iterate((_, key) => {
+        subs.push(key.toLowerCase());
       });
-      userFilters.iterate((value, key, iterationNumber) => {
-        setFilteredUsers((f) => [...f, key]);
+      
+      await userFilters.iterate((_, key) => {
+        users.push(key.toLowerCase());
       });
+      
+      setFilteredSubs(subs);
+      setFilteredUsers(users);
     };
 
     loadFilters();
@@ -26,7 +36,7 @@ const useFilterSubs = () => {
     };
   }, [updateFilters]);
 
-  const addSubFilter = async (sub: string, showToast = true) => {
+  const addSubFilter = useCallback(async (sub: string, showToast = true) => {
     if (sub.includes("/")) {
       sub = sub.split("/")?.[1] ?? sub;
     }
@@ -59,8 +69,8 @@ const useFilterSubs = () => {
           { position: "bottom-center", duration: 3000 }
         );
     }
-  };
-  const removeSubFilter = async (sub: string) => {
+  }, [setUpdateFilters]);
+  const removeSubFilter = useCallback(async (sub: string) => {
     let exists = await subredditFilters.getItem(sub.toUpperCase());
     if (exists) {
       subredditFilters.removeItem(sub.toUpperCase());
@@ -69,8 +79,8 @@ const useFilterSubs = () => {
       );
       setUpdateFilters(n => n+1);
     }
-  };
-  const addUserFilter = async (user: string, showToast = true) => {
+  }, [setUpdateFilters]);
+  const addUserFilter = useCallback(async (user: string, showToast = true) => {
     if (user.includes("/")) {
       user = user.split("/")?.[1] ?? user;
     }
@@ -105,8 +115,8 @@ const useFilterSubs = () => {
           { position: "bottom-center", duration: 3000 }
         );
     }
-  };
-  const removeUserFilter = async (user: string) => {
+  }, [setUpdateFilters]);
+  const removeUserFilter = useCallback(async (user: string) => {
     let exists = await userFilters.getItem(user.toUpperCase());
     if (exists) {
       userFilters.removeItem(user.toUpperCase());
@@ -116,7 +126,15 @@ const useFilterSubs = () => {
       setUpdateFilters(n => n+1);
 
     }
-  };
+  }, [setUpdateFilters]);
+
+  const clearAllFilters = useCallback(async () => {
+    await subredditFilters.clear();
+    await userFilters.clear();
+    setFilteredSubs([]);
+    setFilteredUsers([]);
+    setUpdateFilters(n => n+1);
+  }, [setUpdateFilters]);
 
   return {
     filteredSubs,
@@ -125,6 +143,7 @@ const useFilterSubs = () => {
     removeSubFilter,
     addUserFilter,
     removeUserFilter,
+    clearAllFilters,
   };
 };
 

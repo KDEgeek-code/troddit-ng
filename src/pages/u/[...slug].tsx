@@ -9,9 +9,10 @@ import { getSession } from "next-auth/react";
 import { useSession } from "next-auth/react";
 import React from "react";
 import { useTAuth } from "../../PremiumAuthContext";
-const Sort = ({ query }) => {
-  const {isLoaded, premium} = useTAuth(); 
+const Sort = () => {
+  const { isLoaded, premium } = useTAuth();
   const router = useRouter();
+  const query = router.query;
   const { data: session, status } = useSession();
   const loading = status === "loading";
   const [loaded, setLoaded] = useState(false);
@@ -21,10 +22,14 @@ const Sort = ({ query }) => {
   const [subsArray, setSubsArray] = useState([]);
   const [username, setUserName] = useState("");
   const [isMulti, setIsMulti] = useState(false);
-  const [feedQuery, setFeedQuery] = useState("");
+  const [feedQuery, setFeedQuery] = useState<any>("");
 
   const getSubsArray = async () => {
-    let subs = await getUserMultiSubs({user:query?.slug?.[0], multi:query?.slug?.[2], isPremium: premium?.isPremium});
+    let subs = await getUserMultiSubs({
+      user: query?.slug?.[0],
+      multi: query?.slug?.[2],
+      isPremium: premium?.isPremium,
+    });
     // subs?.length > 0 ? setSubsArray(subs) : setSubsArray([]);
 
     subs && subs?.length > 0 && router.push(`/r/${subs.join("+")}`);
@@ -34,12 +39,20 @@ const Sort = ({ query }) => {
 
   //to handle direct routes (ie from going back)
   useEffect(() => {
-    if (query.slug?.[1] === "r" && query.slug?.[3] === "comments") {
-      router.replace(`/${query.slug?.slice(1)?.join("/")}`);
+    if (
+      Array.isArray(query.slug) &&
+      query.slug[1] === "r" &&
+      query.slug[3] === "comments"
+    ) {
+      router.replace(`/${query.slug.slice(1).join("/")}`);
     }
     //multi case
-    else if (query.slug?.[3] === "r" && query.slug?.[5] === "comments") {
-      router.replace(`/${query.slug?.slice(3)?.join("/")}`);
+    else if (
+      Array.isArray(query.slug) &&
+      query.slug[3] === "r" &&
+      query.slug[5] === "comments"
+    ) {
+      router.replace(`/${query.slug.slice(3).join("/")}`);
     }
   }, []);
 
@@ -59,7 +72,7 @@ const Sort = ({ query }) => {
       } else {
         setForbidden(false);
         setUserName(query?.slug?.[0]);
-        setFeedQuery(query);
+        setFeedQuery(router.asPath);
         setIsUser(true);
         setLoaded(true);
         setMode(mode.toUpperCase());
@@ -78,7 +91,7 @@ const Sort = ({ query }) => {
       sessionLoad(query?.slug?.[0], query?.slug?.[1]?.toUpperCase());
     } else {
       setIsUser(true);
-      setFeedQuery(query);
+      setFeedQuery(router.asPath);
       if (query?.slug?.[1] === "m" && query?.slug?.[2]?.length > 0) {
         setIsMulti(true);
         setLoaded(true);
@@ -154,9 +167,6 @@ const Sort = ({ query }) => {
   );
 };
 
-//can't use getServerSideProps because in app navigation causes page jump
-Sort.getInitialProps = ({ query, req }) => {
-  return { query };
-};
+// getInitialProps removed; using useRouter for query
 
 export default Sort;
