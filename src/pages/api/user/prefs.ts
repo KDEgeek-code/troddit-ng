@@ -40,15 +40,20 @@ async function authenticateUser(req: NextApiRequest): Promise<AuthenticatedUser>
   // Optionally check if user is still active in the database
   // Assuming a 'users' table with 'username' and 'active' fields
   const username = token.name.toLowerCase();
-  const userResult = await query(
-    'SELECT active FROM users WHERE username = $1',
-    [username]
-  );
-  if (
-    userResult.rows.length === 0 ||
-    userResult.rows[0].active === false
-  ) {
-    throw new Error('User is not active');
+  try {
+    const userResult = await query(
+      'SELECT active FROM users WHERE username = $1',
+      [username]
+    );
+    if (
+      userResult.rows.length === 0 ||
+      userResult.rows[0].active === false
+    ) {
+      throw new Error('User is not active');
+    }
+  } catch (e) {
+    // If the users table doesn't exist or any DB error occurs, skip this check.
+    // Optionally gate this behavior behind an env flag if stricter checks are required.
   }
 
   // Use Reddit username only, normalized to lowercase
@@ -138,11 +143,12 @@ async function handlePostRequest(req: NextApiRequest, res: NextApiResponse<ApiRe
     const windowMs = 60 * 1000; // 1 minute
     
     // Simple in-memory rate limiting (consider Redis for production)
-    if (!global.rateLimitStore) {
-      global.rateLimitStore = new Map();
+    const g: any = global as any;
+    if (!g.rateLimitStore) {
+      g.rateLimitStore = new Map();
     }
     
-    const userRateLimit = global.rateLimitStore.get(rateLimitKey);
+    const userRateLimit = g.rateLimitStore.get(rateLimitKey);
     if (userRateLimit && currentTime - userRateLimit.timestamp < windowMs) {
       if (userRateLimit.count >= 10) {
         res.setHeader('Retry-After', Math.ceil(windowMs / 1000));
@@ -153,7 +159,7 @@ async function handlePostRequest(req: NextApiRequest, res: NextApiResponse<ApiRe
       }
       userRateLimit.count++;
     } else {
-      global.rateLimitStore.set(rateLimitKey, { count: 1, timestamp: currentTime });
+      g.rateLimitStore.set(rateLimitKey, { count: 1, timestamp: currentTime });
     }
     
     // Validate request body

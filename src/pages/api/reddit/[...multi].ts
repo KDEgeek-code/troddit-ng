@@ -17,22 +17,41 @@ const handler = async (request: NextApiRequest, response: NextApiResponse) => {
     response.status(400).json({ Error: "Missing data" });
   } else {
     try {
+      // Prepare headers and body forwarding
+      const headers: Record<string, string> = {};
+      if (auth) headers['authorization'] = String(auth);
+      const ctHeader = request.headers?.['content-type'];
+      if (ctHeader) headers['content-type'] = Array.isArray(ctHeader) ? ctHeader[0] : String(ctHeader);
+
+      const needsBody = method !== 'GET' && method !== 'HEAD';
+      let body: any = undefined;
+      if (needsBody) {
+        const ct = typeof headers['content-type'] === 'string' ? headers['content-type'] : '';
+        if (typeof request.body === 'string') {
+          body = request.body;
+        } else if (ct.includes('application/json')) {
+          body = JSON.stringify(request.body ?? {});
+        } else if (ct.includes('application/x-www-form-urlencoded')) {
+          body = new URLSearchParams(request.body ?? {}).toString();
+        } else {
+          // Fallback: let fetch handle undefined body
+          body = undefined;
+        }
+      }
+
       const r = await fetch(`${BASE_ROUTE}${uri}`, {
-        method: method,
-        headers: {
-          Authorization: `${auth}`,
-        },
+        method,
+        headers,
+        body,
       });
 
       try {
         const json = await r.json();
-        response.status(r.status).json(json); //.json(await r.json());
+        response.status(r.status).json(json);
       } catch (error) {
-        //console.log("JSON ERR?", error);
         response.status(r.status).json({ Status: r.statusText });
       }
     } catch (err) {
-      //console.log("MULTI ERR?", err);
       response.status(500).json({ Error: "Server error" });
     }
   }

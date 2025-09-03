@@ -114,6 +114,18 @@ const ToggleFilters = ({
   }, [updateTheme]);
 
 
+  // Stable change handler; must be declared before any early returns to satisfy hooks rules
+  const handleChange = useCallback(() => {
+    context.toggleFilter(filter);
+    if (quickToggle) {
+      context.applyFilters();
+      context.setUpdateFilters((n) => n + 1);
+      invalidateKey(["feed"], true);
+    } else {
+      setToggled((t) => !t);
+    }
+  }, [context, filter, quickToggle, invalidateKey]);
+
   if (!mounted) return null;
 
   return (
@@ -130,16 +142,7 @@ const ToggleFilters = ({
           )}
         </span>
         <ReactSwitch
-          onChange={useCallback(() => {
-            context.toggleFilter(filter);
-            if (quickToggle) {
-              context.applyFilters(); 
-              context.setUpdateFilters(n => n + 1); 
-              invalidateKey(["feed"], true);
-            } else {
-              setToggled(t => !t);
-            }
-          }, [context, filter, quickToggle, invalidateKey])}
+          onChange={handleChange}
           checked={checked}
           checkedHandleIcon={<div></div>}
           checkedIcon={

@@ -5,7 +5,9 @@ import axios from "axios";
 
 export default async (req, res) => {
   const token = await getToken({ req, secret: process.env.NEXTAUTH_SECRET });
-  //console.log(JSON.stringify(token, null, 2));
+  if (!token?.reddit?.accessToken) {
+    return res.status(401).json({ status: "Unauthorized" });
+  }
   try {
     return res.status(200).json({
       status: "Ok",
