@@ -188,7 +188,7 @@ const SafePersistProvider: React.FC<SafePersistProviderProps> = ({
 const App = ({ Component, pageProps }) => {
   return (
     <SessionProvider session={pageProps.session}>
-      <ThemeProvider defaultTheme="system">
+      <ThemeProvider attribute="class" defaultTheme="system">
         <SafePersistProvider>
           <AppProviders>
             <MySubsProvider>

@@ -94,6 +94,7 @@ class MyDocument extends Document {
           <link rel="dns-prefetch" href="https://cdn.redgifs.com" />
         </Head>
         <body className=" bg-th-base text-th-text">
+          <script dangerouslySetInnerHTML={{__html:`(function(){try{var s=document.querySelector('style[data-next-hide-fouc]'); if(s&&s.parentNode){s.parentNode.removeChild(s);} document.body.style.display='';}catch(e){}})();`}} />
           <Main />
           <NextScript />
         </body>
