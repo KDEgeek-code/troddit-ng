@@ -78,12 +78,11 @@ const ToggleFilters = ({
 
   useEffect(() => {
     if (quickToggle && toggled) {
-      const { applyFilters, setUpdateFilters } = context;
-      applyFilters(); 
-      setUpdateFilters(n => n + 1);
-      invalidateKey(["feed"], true); 
+      applyFilters();
+      setUpdateFilters((n) => n + 1);
+      invalidateKey(["feed"], true);
     }
-  }, [quickToggle, toggled, context.applyFilters, context.setUpdateFilters, invalidateKey]);
+  }, [quickToggle, toggled, applyFilters, setUpdateFilters, invalidateKey]);
   
 
   const [onHandleColor, setOnHandleColor] = useState<string>();
@@ -104,27 +103,26 @@ const ToggleFilters = ({
       .getPropertyValue("--toggleHandleColor")
       .trim();
 
-    setOnHandleColor(() => toggleHandleColor
-    );
-    setOffHandleColor(() => toggleHandleColor
-    );
+    setOnHandleColor(() => toggleHandleColor);
+    setOffHandleColor(() => toggleHandleColor);
     setOnColor(() => toggleColor);
-    setOffColor(() =>toggleColor
-    );
+    setOffColor(() => toggleColor);
   }, [updateTheme]);
 
+  // Destructure stable references from context for dependency clarity
+  const { applyFilters, setUpdateFilters } = context;
 
   // Stable change handler; must be declared before any early returns to satisfy hooks rules
   const handleChange = useCallback(() => {
     context.toggleFilter(filter);
     if (quickToggle) {
-      context.applyFilters();
-      context.setUpdateFilters((n) => n + 1);
+      applyFilters();
+      setUpdateFilters((n) => n + 1);
       invalidateKey(["feed"], true);
     } else {
       setToggled((t) => !t);
     }
-  }, [context, filter, quickToggle, invalidateKey]);
+  }, [context, filter, quickToggle, applyFilters, setUpdateFilters, invalidateKey]);
 
   if (!mounted) return null;
 

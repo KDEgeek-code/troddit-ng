@@ -79,7 +79,7 @@ export default class Item extends Component {
     }
 
     return (
-      <li role="option" {...restProps} ref={this.storeItemReference}>
+      <li role="option" aria-selected={isHighlighted} {...restProps} ref={this.storeItemReference}>
         {renderItem(item, { isHighlighted, ...renderItemData })}
       </li>
     );
