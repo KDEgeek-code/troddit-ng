@@ -9,7 +9,7 @@ import { fixCommentFormat } from "../../lib/utils";
 import { useMainContext } from "../MainContext";
 import { loadMoreComments, loadPost } from "../RedditAPI";
 import { useTAuth } from "../PremiumAuthContext";
-import { RedditPost, RedditComment, UseThreadReturn, ThreadPage } from "../../types";
+import type { RedditPost, RedditComment, UseThreadReturn, ThreadPage } from "../../types";
 
 const useThread = (
   permalink: string, 

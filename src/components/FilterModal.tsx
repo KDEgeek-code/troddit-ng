@@ -8,7 +8,7 @@ import FilterEntities from "./settings/FilterEntities";
 import useRefresh from "../hooks/useRefresh";
 import React from "react";
 
-import { FilterType } from "../../types";
+import type { FilterType } from "../../types";
 const filters: FilterType[] = [
   "self",
   "links",

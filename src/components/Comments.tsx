@@ -2,7 +2,7 @@ import { useSession } from "next-auth/react";
 import React, { useEffect, useState, useCallback, useMemo } from "react";
 import { useMainContext } from "../MainContext";
 import ChildComments from "./ChildComments";
-import { CommentsProps, RedditComment, UseThreadReturn } from "../../types";
+import type { CommentsProps, RedditComment, UseThreadReturn } from "../../types";
 
 type RedditMore = { kind: "more"; data?: { count?: number; id?: string } };
 type ExtendedCommentsProps = CommentsProps & {

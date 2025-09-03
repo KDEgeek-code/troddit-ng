@@ -1,5 +1,5 @@
 import React, { useEffect, useState } from "react";
-import { UseFeedReturn } from "../../types";
+import type { UseFeedReturn } from "../../types";
 import useFeedGallery from "./useFeedGallery";
 import ToastCustom from "../components/toast/ToastCustom";
 import toast from "react-hot-toast";

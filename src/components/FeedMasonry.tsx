@@ -1,5 +1,5 @@
 import React, { useCallback, useEffect, useMemo, useState } from "react";
-import { UseFeedReturn } from "../../types";
+import type { UseFeedReturn } from "../../types";
 
 import {
   MasonryScroller,

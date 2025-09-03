@@ -19,7 +19,7 @@ import { ImEmbed } from "react-icons/im";
 import { BsBoxArrowInUpRight } from "react-icons/bs";
 import { BiExpand } from "react-icons/bi";
 import ExternalLink from "./ui/ExternalLink";
-import { MediaProps, GalleryInfo, PostData } from "../../types";
+import type { MediaProps, GalleryInfo, PostData } from "../../types";
 import LoaderPuff from "./ui/LoaderPuff";
 import { logApiRequest } from "../RedditAPI";
 const scrollStyle =

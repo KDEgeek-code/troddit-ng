@@ -1,7 +1,7 @@
 import React, { useState, useCallback } from 'react'
 import { BsStar, BsStarFill } from 'react-icons/bs'
 import { useSubsContext } from '../MySubs';
-import { FavoriteButtonProps } from '../../types';
+import type { FavoriteButtonProps } from '../../types';
 
 const FavoriteButton = ({
   sub, 

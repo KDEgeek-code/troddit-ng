@@ -1,6 +1,6 @@
 import localForage from "localforage";
 import React, { useState, useContext, useEffect, createContext } from "react";
-import { MediaContextValue } from "../../types";
+import type { MediaContextValue } from "../../types";
 
 export const MediaContext = createContext<MediaContextValue | undefined>(undefined);
 

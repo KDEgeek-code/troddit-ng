@@ -8,7 +8,7 @@ import { isContext } from "vm";
 import { findGreatestsImages } from "../../lib/utils";
 import { useMainContext } from "../MainContext";
 import GalleryCarousel from "./GalleryCarousel";
-import { GalleryInfo } from "../../types";
+import type { GalleryInfo } from "../../types";
 
 const Gallery = ({
   images,

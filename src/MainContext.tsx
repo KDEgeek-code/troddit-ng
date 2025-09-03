@@ -2,7 +2,7 @@ import localForage from "localforage";
 import React, { useState, useContext, useEffect, useReducer } from "react";
 import { useTAuth } from "./PremiumAuthContext";
 import { useUserPrefs, type PreferenceMap } from "./hooks/useUserPrefs";
-import { AppContextValue, RedditPost, PostType, RedditSubreddit } from "../types";
+import type { AppContextValue, RedditPost, PostType, RedditSubreddit } from "../types";
 import { useUIContext } from "./contexts/UIContext";
 import { useMediaContext } from "./contexts/MediaContext";
 import { useFilterContext } from "./contexts/FilterContext";

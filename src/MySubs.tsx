@@ -20,7 +20,7 @@ import toast from "react-hot-toast";
 
 import ToastCustom from "./components/toast/ToastCustom";
 import { useTAuth } from "./PremiumAuthContext";
-import { RedditSubreddit } from "../types";
+import type { RedditSubreddit } from "../types";
 
 export const SubsContext = React.createContext<any | undefined>(undefined);
 export const useSubsContext = (): any => {

@@ -4,7 +4,7 @@ import {
   subredditFilters,
   userFilters,
 } from "../src/MainContext";
-import { GalleryInfo, ImageInfo, MediaInfo, VideoInfo } from "../types";
+import type { GalleryInfo, ImageInfo, MediaInfo, VideoInfo } from "../types";
 
 const DOMAIN = "www.troddit.com";
 export const secondsToTime = (

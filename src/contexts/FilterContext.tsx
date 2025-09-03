@@ -1,6 +1,6 @@
 import localForage from "localforage";
 import React, { useState, useContext, useEffect, createContext } from "react";
-import { FilterContextValue, FilterType } from "../../types";
+import type { FilterContextValue, FilterType } from "../../types";
 
 export const FilterContext = createContext<FilterContextValue | undefined>(undefined);
 

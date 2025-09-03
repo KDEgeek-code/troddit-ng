@@ -13,7 +13,7 @@ import {
 } from "../RedditAPI";
 import useLocation from "./useLocation";
 import { useTAuth } from "../PremiumAuthContext";
-import {
+import type {
   RedditPost,
   FlattenedListing,
   UseFeedReturn,

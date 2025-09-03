@@ -1,7 +1,7 @@
 import localForage from "localforage";
 import { migrateStorageValue, persistToStorage } from "../utils/storage";
 import React, { useState, useContext, useEffect, createContext } from "react";
-import { UIContextValue, CardStyle } from "../../types";
+import type { UIContextValue, CardStyle } from "../../types";
 
 export const UIContext = createContext<UIContextValue | undefined>(undefined);
 

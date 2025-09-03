@@ -7,7 +7,7 @@ import Row1 from "./cards/Row1";
 import CommentCard from "./cards/CommentCard";
 import { useRead } from "../hooks/useRead";
 import useCardHeightTrigger from "../hooks/useCardHeightTrigger";
-import { PostProps } from "../../types";
+import type { PostProps } from "../../types";
 
 const Post = ({
   post,
