@@ -93,6 +93,10 @@ const ToggleFilters = ({
   useEffect(() => {
     setUpdateTheme((t) => t + 1);
   }, [resolvedTheme]);
+
+  // Destructure stable references from context for dependency clarity
+  const { applyFilters, setUpdateFilters } = context;
+
   useEffect(() => {
     let toggleColor = window
       .getComputedStyle(document.documentElement)
@@ -108,9 +112,6 @@ const ToggleFilters = ({
     setOnColor(() => toggleColor);
     setOffColor(() => toggleColor);
   }, [updateTheme]);
-
-  // Destructure stable references from context for dependency clarity
-  const { applyFilters, setUpdateFilters } = context;
 
   // Stable change handler; must be declared before any early returns to satisfy hooks rules
   const handleChange = useCallback(() => {
