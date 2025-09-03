@@ -189,20 +189,20 @@ const App = ({ Component, pageProps }) => {
   return (
     <SessionProvider session={pageProps.session}>
       <ThemeProvider defaultTheme="system">
-        <AppProviders>
-          <MySubsProvider>
-            <MyCollectionsProvider>
-              <SafePersistProvider>
+        <SafePersistProvider>
+          <AppProviders>
+            <MySubsProvider>
+              <MyCollectionsProvider>
                 <NavBar />
                 <Component {...pageProps} />
                 <ModalProvider />
                 <Toaster position="bottom-center" />
                 <Analytics />
                 <ReactQueryDevtools initialIsOpen={false} />
-              </SafePersistProvider>
-            </MyCollectionsProvider>
-          </MySubsProvider>
-        </AppProviders>
+              </MyCollectionsProvider>
+            </MySubsProvider>
+          </AppProviders>
+        </SafePersistProvider>
       </ThemeProvider>
     </SessionProvider>
   );

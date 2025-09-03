@@ -46,6 +46,9 @@ const ToggleFilters = ({
   const filterKey = keyMap[filter];
   const filterValue = context[filterKey];
   const checked = !!filterValue;
+
+  // Destructure stable references from context for dependency clarity
+  const { applyFilters, setUpdateFilters } = context;
   
   const subtext = (() => {
     switch (filter) {
@@ -93,9 +96,6 @@ const ToggleFilters = ({
   useEffect(() => {
     setUpdateTheme((t) => t + 1);
   }, [resolvedTheme]);
-
-  // Destructure stable references from context for dependency clarity
-  const { applyFilters, setUpdateFilters } = context;
 
   useEffect(() => {
     let toggleColor = window
