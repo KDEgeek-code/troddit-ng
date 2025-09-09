@@ -70,14 +70,13 @@ To use login functionality the following environment variables need to be define
 ```sh
 CLIENT_ID=<ID of your Reddit app>
 CLIENT_SECRET=<Secret from your Reddit app>
-REDDIT_REDIRECT=<YOUR DOMAIN/api/auth/callback/reddit>
 NEXTAUTH_SECRET=<See https://next-auth.js.org/configuration/options#secret>
 NEXTAUTH_URL=http://localhost:3000
 SIGNING_PRIVATE_KEY=<See https://next-auth.js.org/v3/warnings, Generate with $jose newkey -s 256 -t oct -a HS512>
 ```
 
 To create a Reddit app visit [https://old.reddit.com/prefs/apps/](https://old.reddit.com/prefs/apps/).
-The redirect uri should match the REDDIT_REDIRECT variable.
+Set the Reddit app redirect URI to `${NEXTAUTH_URL}/api/auth/callback/reddit`.
 
 ## Docker
 
@@ -119,6 +118,51 @@ This will create the troddit image and pull in the necessary dependencies. To ru
 docker run -p 3000:3000 troddit
 ```
 
+### Docker Compose environment
+
+- Compose reads variables from a file named `.env` in the project root (not `.env.local`).
+- To avoid conflicts with a local Postgres on port 5432, set `DB_HOST_PORT` in `.env`:
+
+```sh
+# .env (used by docker-compose)
+DB_HOST_PORT=5433
+```
+
+You can also override inline without a file:
+
+```sh
+DB_HOST_PORT=5433 docker-compose up -d db
+```
+
+Tip: copy the example file to get started:
+
+```sh
+cp .env.example .env
+```
+
+### Database initialization and re-running init.sql
+
+- The database volume persists data; `db/init.sql` runs only on first container creation.
+- To re-run `init.sql`, remove the volume and recreate the container:
+
+```sh
+docker-compose down -v            # remove containers and volumes
+# or remove the named volume directly (project prefix: troddit)
+docker volume rm troddit_pgdata
+docker-compose up -d db
+```
+
+If your schema will evolve, consider adding a migration tool (e.g., Prisma Migrate, Flyway, or Liquibase).
+
+### Verify database connectivity
+
+Run a simple check to confirm the schema was created:
+
+```sh
+npm i   # or: yarn install
+npm run verify:db
+```
+
+This runs a query against `public.user_prefs` and reports whether it exists.
+
 ### Support
-
-

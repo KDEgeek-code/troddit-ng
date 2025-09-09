@@ -81,6 +81,9 @@ const SafePersistProvider: React.FC<SafePersistProviderProps> = ({
       try {
         // Dynamically import localforage to avoid SSR issues
         const localforage = (await import("localforage")).default;
+        if (process.env.NODE_ENV !== 'production') {
+          (window as any).localforage = localforage;
+        }
 
         // Comment 4: Configure localforage with explicit driver order for broader browser compatibility
         localforage.config({
@@ -112,10 +115,10 @@ const SafePersistProvider: React.FC<SafePersistProviderProps> = ({
               const client = await localforage.getItem<PersistedClient>(
                 "REACT_QUERY_OFFLINE_CACHE",
               );
-              return client;
+              return client ?? undefined;
             } catch (error) {
               console.warn("Failed to restore React Query cache:", error);
-              return null;
+              return undefined;
             }
           },
           removeClient: async () => {
@@ -141,12 +144,9 @@ const SafePersistProvider: React.FC<SafePersistProviderProps> = ({
     initializePersistence();
   }, []);
 
-  // Comment 3: Gate children until persistence is ready to avoid offline flicker
+  // Comment 6: Gate rendering until persistence is ready
   if (!isPersistenceReady) {
-    // Return minimal skeleton to prevent flicker while persistence loads
-    return (
-      <QueryClientProvider client={queryClient}>{children}</QueryClientProvider>
-    );
+    return null;
   }
 
   // Use PersistQueryClientProvider if persister is available, otherwise fallback to QueryClientProvider
@@ -180,9 +180,7 @@ const SafePersistProvider: React.FC<SafePersistProviderProps> = ({
   }
 
   // Fallback to standard QueryClientProvider if persistence fails
-  return (
-    <QueryClientProvider client={queryClient}>{children}</QueryClientProvider>
-  );
+  return <QueryClientProvider client={queryClient}>{children}</QueryClientProvider>;
 };
 
 const App = ({ Component, pageProps }) => {

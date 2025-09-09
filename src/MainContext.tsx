@@ -7,16 +7,19 @@ import { useUIContext } from "./contexts/UIContext";
 import { useMediaContext } from "./contexts/MediaContext";
 import { useFilterContext } from "./contexts/FilterContext";
 
-export const localRead = localForage.createInstance({ storeName: "readPosts" });
-export const localSeen = localForage.createInstance({ storeName: "seenPosts" });
+export const localRead = localForage.createInstance({ name: "troddit", storeName: "readPosts" });
+export const localSeen = localForage.createInstance({ name: "troddit", storeName: "seenPosts" });
 
 export const localSubInfoCache = localForage.createInstance({
+  name: "troddit",
   storeName: "subInfoCache",
 });
 export const subredditFilters = localForage.createInstance({
+  name: "troddit",
   storeName: "subredditFilters",
 });
 export const userFilters = localForage.createInstance({
+  name: "troddit",
   storeName: "userFilters",
 });
 
@@ -632,6 +635,13 @@ export const MainProvider = ({ children }: { children: React.ReactNode }) => {
       localForage.setItem("localFavoriteSubs", localFavoriteSubs);
     }
   }, [localFavoriteSubs]);
+
+  // Expose minimal MainContext in dev builds for debug helpers
+  useEffect(() => {
+    if (process.env.NODE_ENV !== 'production' && typeof window !== 'undefined') {
+      (window as any).__APP_MAIN_CONTEXT__ = { rateLimitModal, setRateLimitModal };
+    }
+  }, [rateLimitModal]);
 
   const contextValue: AppContextValue = {
     // Basic App State
