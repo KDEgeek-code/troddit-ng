@@ -29,11 +29,11 @@ const Comments = ({
   }, [commentsData]);
 
   const loadChildComments = async () => {
-    if (session) {
-      thread.fetchNextPage();
-    } else {
+    if (!session) {
       context.toggleLoginModal();
+      return;
     }
+    thread.fetchNextPage();
   };
 
   return (
