@@ -38,40 +38,45 @@ const Comments = ({
 
   return (
     <div className="">
-      {commentsData?.map((comment, i) => (
-        <div key={`${i}_${comment?.data?.id}`} className="py-1 ">
-          {comment?.kind === "more" ? (
-            <button
-              aria-label="load more"
-              className={
-                "text-sm pl-2 text-semibold flex hover:font-semibold w-full " +
-                (thread.isFetching ? " animate-pulse" : " ")
-              }
-              disabled={thread.isFetching}
-              onClick={(e) => {
-                e.preventDefault();
-                e.stopPropagation();
-                loadChildComments();
-              }}
-            >
-              Load {comment?.data?.count} More...
-            </button>
-          ) : (
-            <>
-              <ChildComments
-                comment={comment}
-                depth={depth}
-                hide={false}
-                op={op}
-                portraitMode={portraitMode}
-                locked={locked}
-                scoreHideMins={scoreHideMins}
-                readTime={readTime}
-              />
-            </>
-          )}
-        </div>
-      ))}
+      {commentsData?.map((comment, i) => {
+        const baseButtonClassName =
+          "text-sm pl-2 text-semibold flex hover:font-semibold w-full ";
+        let buttonClassName = baseButtonClassName;
+        if (thread.isFetching) {
+          buttonClassName += " animate-pulse";
+        }
+        return (
+          <div key={`${i}_${comment?.data?.id}`} className="py-1 ">
+            {comment?.kind === "more" ? (
+              <button
+                aria-label="load more"
+                className={buttonClassName}
+                disabled={thread.isFetching}
+                onClick={(e) => {
+                  e.preventDefault();
+                  e.stopPropagation();
+                  loadChildComments();
+                }}
+              >
+                Load {comment?.data?.count} More...
+              </button>
+            ) : (
+              <>
+                <ChildComments
+                  comment={comment}
+                  depth={depth}
+                  hide={false}
+                  op={op}
+                  portraitMode={portraitMode}
+                  locked={locked}
+                  scoreHideMins={scoreHideMins}
+                  readTime={readTime}
+                />
+              </>
+            )}
+          </div>
+        );
+      })}
     </div>
   );
 };
