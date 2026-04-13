@@ -30,7 +30,7 @@
     "lodash": "^4.17.21",
     "markdown-draft-js": "^2.4.0",
     "masonic": "^3.6.4",
-    "next": "^14.2.30",
+    "next": "^15.5.15",
     "next-auth": "^4.24.12",
     "next-cookies": "^2.0.3",
     "next-plausible": "^3.1.4",
